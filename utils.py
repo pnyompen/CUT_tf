@@ -21,7 +21,6 @@ def load_image(image_file, crop_size, load_size, preprocess='none', data_augment
     image = tf.io.read_file(image_file)
     image = tf.image.decode_image(image, expand_animations=False, channels=3)
     image = (tf.cast(image, tf.float32) / 127.5) - 1.0
-    print(image)
 
     if data_augmentation:
         image = tf.image.random_flip_left_right(image)
