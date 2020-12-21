@@ -55,7 +55,7 @@ def ArgParse():
                         type=str, default='ref', choices=['ref', 'cuda'])
     # Dataset
     parser.add_argument('--preprocess', type=str, default='none',
-                        choices=['none', 'scale_shortside_and_crop'])
+                        choices=['none', 'crop', 'scale_shortside_and_crop'])
     parser.add_argument('--crop_size', type=int, default=256)
     parser.add_argument('--load_size', type=int, default=256)
 
@@ -142,7 +142,7 @@ def create_dataset(args):
     """
     # Create train dataset
     train_src_dataset = tf.data.Dataset.list_files(
-        [args.train_src_folder+'/*.jpg', args.train_src_folder+'/*.png'], shuffle=True)
+        [args.train_src_dir+'/*.jpg', args.train_src_dir+'/*.png'], shuffle=True)
     train_src_dataset = (
         train_src_dataset.map(lambda x: load_image(x, crop_size=args.crop_size, load_size=args.load_size,
                                                    preprocess=args.preprocess), num_parallel_calls=tf.data.experimental.AUTOTUNE)
@@ -151,7 +151,7 @@ def create_dataset(args):
     )
 
     train_tar_dataset = tf.data.Dataset.list_files(
-        [args.train_tar_folder+'/*.jpg', args.train_tar_folder+'/*.png'], shuffle=True)
+        [args.train_tar_dir+'/*.jpg', args.train_tar_dir+'/*.png'], shuffle=True)
     train_tar_dataset = (
         train_tar_dataset.map(lambda x: load_image(x, crop_size=args.crop_size, load_size=args.load_size,
                                                    preprocess=args.preprocess), num_parallel_calls=tf.data.experimental.AUTOTUNE)
@@ -163,7 +163,7 @@ def create_dataset(args):
 
     # Create test dataset
     test_src_dataset = tf.data.Dataset.list_files(
-        [args.test_src_folder+'/*.jpg', args.test_src_folder+'/*.png'])
+        [args.test_src_dir+'/*.jpg', args.test_src_dir+'/*.png'])
     test_src_dataset = (
         test_src_dataset.map(lambda x: load_image(x, crop_size=args.crop_size, load_size=args.load_size,
                                                   preprocess=args.preprocess), num_parallel_calls=tf.data.experimental.AUTOTUNE)
@@ -172,7 +172,7 @@ def create_dataset(args):
     )
 
     test_tar_dataset = tf.data.Dataset.list_files(
-        [args.test_tar_folder+'/*.jpg', args.test_tar_folder+'/*.png'])
+        [args.test_tar_dir+'/*.jpg', args.test_tar_dir+'/*.png'])
     test_tar_dataset = (
         test_tar_dataset.map(lambda x: load_image(x, crop_size=args.crop_size, load_size=args.load_size,
                                                   preprocess=args.preprocess), num_parallel_calls=tf.data.experimental.AUTOTUNE)
