@@ -9,12 +9,13 @@ def create_dir(dir):
         os.makedirs(dir)
         print(f'Directory {dir} createrd')
     else:
-        print(f'Directory {dir} already exists')  
+        print(f'Directory {dir} already exists')
 
     return dir
 
+
 @tf.function
-def load_image(image_file, image_size=None, data_augmentation=True):
+def load_image(image_file, crop_size, load_size, preprocess='none', data_augmentation=True):
     """ Load the image file.
     """
     image = tf.io.read_file(image_file)
@@ -23,9 +24,18 @@ def load_image(image_file, image_size=None, data_augmentation=True):
 
     if data_augmentation:
         image = tf.image.random_flip_left_right(image)
-    if image_size is not None:
-        image = tf.image.resize(image, size=(image_size[0], image_size[1]))
+    if 'scale_shortside' in preprocess:
+        c, w, h = image.shape
+        if w > h:
+            w = tf.cast(load_size / h * w, tf.int)
+            h = load_size
+        else:
+            h = tf.cast(load_size / w * h, tf.int)
+            w = load_size
+        image = tf.image.resize(image, size=(w, h))
+    if 'crop' in preprocess:
+        image = tf.image.random_crop(image, (crop_size, crop_size))
     if tf.shape(image)[-1] == 1:
-        image = tf.tile(image, [1,1,3])
+        image = tf.tile(image, [1, 1, 3])
 
-    return  image
+    return image
