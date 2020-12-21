@@ -36,6 +36,7 @@ def ArgParse():
     parser.add_argument('--ckpt', help='Resume training from checkpoint', type=str)
     parser.add_argument('--save_n_epoch', help='Every n epochs to save checkpoints', type=int, default=5)
     parser.add_argument('--impl', help="(Faster)Custom op use:'cuda'; (Slower)Tensorflow op use:'ref'", type=str, default='ref', choices=['ref', 'cuda'])
+    parser.add_argument('--preprocess', type=str, default='none', choices=['none', 'scale_shortside_and_crop']
 
     args = parser.parse_args()
 
