@@ -34,7 +34,6 @@ def ArgParse():
     args = parser.parse_args()
 
     # Check arguments
-    assert args.ckpt
     return args
 
 
@@ -43,15 +42,16 @@ def main(args):
 
     # Create model
     cut = CUT_model(source_shape, target_shape,
-                    cut_mode=args.mode, impl=args.impl, model='unet')
+                    cut_mode=args.mode, impl=args.impl, model='resnet')
 
     # Restored from previous checkpoints, or initialize checkpoints from scratch
-    latest_ckpt = tf.train.latest_checkpoint(args.ckpt)
-    cut.load_weights(latest_ckpt)
+    if args.ckpt:
+        latest_ckpt = tf.train.latest_checkpoint(args.ckpt)
+        cut.load_weights(latest_ckpt)
+        print(f"Restored from {latest_ckpt}.")
 
     model = cut.netG
     model.summary()
-    print(f"Restored from {latest_ckpt}.")
 
     # Define the folders to store output information
     out_dir = Path(args.out_dir)

@@ -10,7 +10,7 @@ ResBlock
 import tensorflow as tf
 import numpy as np
 
-from tensorflow.keras.layers import Layer, Conv2D, Activation, BatchNormalization, Lambda
+from tensorflow.keras.layers import Layer, Conv2D, Activation, BatchNormalization, Lambda, Conv2DTranspose
 from modules.ops.upfirdn_2d import upsample_2d, downsample_2d
 
 
@@ -135,6 +135,43 @@ class ConvBlock(Layer):
         super(ConvBlock, self).__init__(**kwargs)
         initializer = tf.random_normal_initializer(0., 0.02)
         self.conv2d = Conv2D(filters,
+                             kernel_size,
+                             strides,
+                             padding,
+                             use_bias=use_bias,
+                             kernel_initializer=initializer)
+        self.activation = Activation(activation)
+        if norm_layer == 'batch':
+            self.normalization = BatchNormalization()
+        elif norm_layer == 'instance':
+            self.normalization = InstanceNorm(affine=False)
+        else:
+            self.normalization = Lambda(lambda x: tf.identity(x))
+
+    def call(self, inputs, training=None):
+        x = self.conv2d(inputs)
+        x = self.normalization(x)
+        x = self.activation(x)
+
+        return x
+
+
+class ConvTransposeBlock(Layer):
+    """ ConBlock layer that consists of Conv2D + Normalization + Activation.
+    """
+
+    def __init__(self,
+                 filters,
+                 kernel_size,
+                 strides=(1, 1),
+                 padding='valid',
+                 use_bias=True,
+                 norm_layer=None,
+                 activation='linear',
+                 **kwargs):
+        super(ConvTransposeBlock, self).__init__(**kwargs)
+        initializer = tf.random_normal_initializer(0., 0.02)
+        self.conv2d = Conv2DTranspose(filters,
                              kernel_size,
                              strides,
                              padding,

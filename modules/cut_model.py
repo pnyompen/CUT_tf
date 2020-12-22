@@ -11,7 +11,7 @@ import tensorflow as tf
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Dense
 
-from modules.layers import ConvBlock, AntialiasSampling, ResBlock, Padding2D, L2Normalize
+from modules.layers import ConvBlock, AntialiasSampling, ResBlock, Padding2D, L2Normalize, ConvTransposeBlock
 from modules.losses import GANLoss, PatchNCELoss
 import unet
 
@@ -28,22 +28,18 @@ def Generator(input_shape, output_shape, norm_layer, resnet_blocks, impl):
     x = Padding2D(3, pad_type='reflect')(inputs)
     x = ConvBlock(64, 7, padding='valid', use_bias=use_bias,
                   norm_layer=norm_layer, activation='relu')(x)
-    x = ConvBlock(128, 3, padding='same', use_bias=use_bias,
+    x = ConvBlock(128, 3, (2, 2), padding='same', use_bias=use_bias,
                   norm_layer=norm_layer, activation='relu')(x)
-    x = AntialiasSampling(4, mode='down', impl=impl)(x)
-    x = ConvBlock(256, 3, padding='same', use_bias=use_bias,
+    x = ConvBlock(256, 3, (2, 2), padding='same', use_bias=use_bias,
                   norm_layer=norm_layer, activation='relu')(x)
-    x = AntialiasSampling(4, mode='down', impl=impl)(x)
 
     for _ in range(resnet_blocks):
         x = ResBlock(256, 3, use_bias, norm_layer)(x)
 
-    x = AntialiasSampling(4, mode='up', impl=impl)(x)
-    x = ConvBlock(128, 3, padding='same', use_bias=use_bias,
-                  norm_layer=norm_layer, activation='relu')(x)
-    x = AntialiasSampling(4, mode='up', impl=impl)(x)
-    x = ConvBlock(64, 3, padding='same', use_bias=use_bias,
-                  norm_layer=norm_layer, activation='relu')(x)
+    x = ConvTransposeBlock(128, 3, (2, 2), padding='same', use_bias=use_bias,
+                           norm_layer=norm_layer, activation='relu')(x)
+    x = ConvTransposeBlock(64, 3, (2, 2), padding='same', use_bias=use_bias,
+                           norm_layer=norm_layer, activation='relu')(x)
     x = Padding2D(3, pad_type='reflect')(x)
     outputs = ConvBlock(output_shape[-1], 7,
                         padding='valid', activation='tanh')(x)
@@ -169,7 +165,7 @@ class CUT_model(Model):
         self.gan_mode = gan_mode
         self.nce_temp = nce_temp
         self.nce_layers = nce_layers
-        if model == 'resnet9':
+        if model == 'resnet':
             self.netG = Generator(source_shape, target_shape,
                                   norm_layer, resnet_blocks=9, impl=impl)
         elif model == 'unet':

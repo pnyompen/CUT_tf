@@ -22,7 +22,7 @@ def ArgParse():
     parser.add_argument('--gan_mode', help='The type of GAN objective.',
                         type=str, default='lsgan', choices=['lsgan', 'nonsaturating'])
     parser.add_argument('--model', help='The type of GAN objective.',
-                        type=str, default='resnet9', choices=['resnet9', 'unet'])
+                        type=str, default='resnet', choices=['resnet', 'unet'])
     parser.add_argument(
         '--epochs', help='Number of training epochs', type=int, default=400)
     parser.add_argument(
