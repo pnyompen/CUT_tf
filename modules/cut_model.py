@@ -173,7 +173,7 @@ class CUT_model(Model):
             self.netG = Generator(source_shape, target_shape,
                                   norm_layer, resnet_blocks=9, impl=impl)
         elif model == 'unet':
-            self.netG = unet.build_model(*source_shape, layer_depth=3)
+            self.netG = unet.build_model(*source_shape, layer_depth=5)
         self.netD = Discriminator(target_shape, norm_layer, impl=impl)
         self.netE = Encoder(self.netG, self.nce_layers)
         self.netF = PatchSampleMLP(netF_units, netF_num_patches)
