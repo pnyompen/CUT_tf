@@ -190,7 +190,6 @@ def build_model(nx: Optional[int] = None,
                       strides=1,
                       padding=padding)(x)
 
-    x = layers.Activation(activation)(x)
     outputs = layers.Activation("tanh", name="outputs")(x)
     model = Model(inputs, outputs, name="unet")
 
