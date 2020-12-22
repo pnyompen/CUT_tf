@@ -13,6 +13,7 @@ from tensorflow.keras.layers import Input, Dense
 
 from modules.layers import ConvBlock, AntialiasSampling, ResBlock, Padding2D, L2Normalize
 from modules.losses import GANLoss, PatchNCELoss
+from modules import unet
 
 
 def Generator(input_shape, output_shape, norm_layer, resnet_blocks, impl):
@@ -153,10 +154,6 @@ class CUT_model(Model):
         self.gan_mode = gan_mode
         self.nce_temp = nce_temp
         self.nce_layers = nce_layers
-        self.netG = Generator(source_shape, target_shape, norm_layer, resnet_blocks=9, impl=impl)
-        self.netD = Discriminator(target_shape, norm_layer, impl=impl)
-        self.netE = Encoder(self.netG, self.nce_layers)
-        self.netF = PatchSampleMLP(netF_units, netF_num_patches)
 
         if cut_mode == 'cut':
             self.nce_lambda = 1.0
@@ -164,8 +161,18 @@ class CUT_model(Model):
         elif cut_mode == 'fastcut':
             self.nce_lambda = 10.0
             self.use_nce_identity = False
+        elif cut_,ode == 'unet':
+            pass
         else:
             raise ValueError(cut_mode)
+        
+        if cut_mode == 'cut':
+            self.netG = Generator(source_shape, target_shape, norm_layer, resnet_blocks=9, impl=impl)
+        elif cut_mode == 'unet':
+            self.netG = unet.build_model(*source_shape)
+        self.netD = Discriminator(target_shape, norm_layer, impl=impl)
+        self.netE = Encoder(self.netG, self.nce_layers)
+        self.netF = PatchSampleMLP(netF_units, netF_num_patches)
 
     def compile(self,
                 G_optimizer,

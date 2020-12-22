@@ -63,7 +63,7 @@ def main(args):
 
     # モデルを変換
     converter = tf.lite.TFLiteConverter.from_saved_model(export_dir)
-    converter.allow_custom_ops = True
+    # converter.allow_custom_ops = True
     tflite_model = converter.convert()
 
     out_path = out_dir / 'converted_model.tflite'
