@@ -3,4 +3,7 @@ _cudacache
 output
 weights
 archive
-datasets
+datasets/
+.DS_Store
+ckpts/
+data/
