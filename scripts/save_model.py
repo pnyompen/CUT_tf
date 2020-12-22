@@ -43,7 +43,7 @@ def main(args):
 
     # Create model
     cut = CUT_model(source_shape, target_shape,
-                    cut_mode=args.mode, impl=args.impl)
+                    cut_mode=args.mode, impl=args.impl, model='unet')
 
     # Restored from previous checkpoints, or initialize checkpoints from scratch
     latest_ckpt = tf.train.latest_checkpoint(args.ckpt)
@@ -66,7 +66,7 @@ def main(args):
     # converter.allow_custom_ops = True
     tflite_model = converter.convert()
 
-    out_path = out_dir / 'converted_model.tflite'
+    out_path = out_dir / 'cut.tflite'
     with open(out_path, 'wb') as f:
         f.write(tflite_model)
 

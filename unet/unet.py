@@ -7,13 +7,14 @@ from tensorflow.keras import layers
 from tensorflow.keras import losses
 from tensorflow.keras.initializers import TruncatedNormal
 from tensorflow.keras.optimizers import Adam
+from modules.layers import BatchNormalization, InstanceNorm
 
 import unet.metrics
 
 
 class ConvBlock(layers.Layer):
 
-    def __init__(self, layer_idx, filters_root, kernel_size, dropout_rate, padding, activation, **kwargs):
+    def __init__(self, layer_idx, filters_root, kernel_size, dropout_rate, padding, activation, norm_layer, ** kwargs):
         super(ConvBlock, self).__init__(**kwargs)
         self.layer_idx=layer_idx
         self.filters_root=filters_root
@@ -29,7 +30,7 @@ class ConvBlock(layers.Layer):
                                       strides=1,
                                       padding=padding)
         self.dropout_1 = layers.Dropout(rate=dropout_rate)
-        self.activation_1 = layers.Activation(activation)
+        self.activation = layers.Activation(activation)
 
         self.conv2d_2 = layers.Conv2D(filters=filters,
                                       kernel_size=(kernel_size, kernel_size),
@@ -37,7 +38,13 @@ class ConvBlock(layers.Layer):
                                       strides=1,
                                       padding=padding)
         self.dropout_2 = layers.Dropout(rate=dropout_rate)
-        self.activation_2 = layers.Activation(activation)
+
+        if norm_layer == 'batch':
+            self.normalization = BatchNormalization()
+        elif norm_layer == 'instance':
+            self.normalization = InstanceNorm(affine=False)
+        else:
+            self.normalization = Lambda(lambda x: tf.identity(x))
 
     def call(self, inputs, training=None, **kwargs):
         x = inputs
@@ -45,13 +52,15 @@ class ConvBlock(layers.Layer):
 
         if training:
             x = self.dropout_1(x)
-        x = self.activation_1(x)
+        x = self.normalization(x)
+        x = self.activation(x)
         x = self.conv2d_2(x)
 
         if training:
             x = self.dropout_2(x)
 
-        x = self.activation_2(x)
+        x = self.normalization(x)
+        x = self.activation(x)
         return x
 
     def get_config(self):
@@ -120,22 +129,21 @@ class CropConcatBlock(layers.Layer):
 
 def build_model(nx: Optional[int] = None,
                 ny: Optional[int] = None,
-                channels: int = 1,
-                num_classes: int = 2,
-                layer_depth: int = 5,
+                channels: int = 3,
+                layer_depth: int = 3,
                 filters_root: int = 64,
                 kernel_size: int = 3,
                 pool_size: int = 2,
                 dropout_rate: int = 0.5,
-                padding:str="valid",
-                activation:Union[str, Callable]="relu") -> Model:
+                padding:str="same",
+                activation:Union[str, Callable]="relu",
+                norm_layer:str='instance') -> Model:
     """
     Constructs a U-Net model
 
     :param nx: (Optional) image size on x-axis
     :param ny: (Optional) image size on y-axis
     :param channels: number of channels of the input tensors
-    :param num_classes: number of classes
     :param layer_depth: total depth of unet
     :param filters_root: number of filters in top unet layer
     :param kernel_size: size of convolutional layers
@@ -156,7 +164,8 @@ def build_model(nx: Optional[int] = None,
                        kernel_size=kernel_size,
                        dropout_rate=dropout_rate,
                        padding=padding,
-                       activation=activation)
+                       activation=activation,
+                       norm_layer=norm_layer)
 
     for layer_idx in range(0, layer_depth - 1):
         x = ConvBlock(layer_idx, **conv_params)(x)
@@ -175,14 +184,14 @@ def build_model(nx: Optional[int] = None,
         x = CropConcatBlock()(x, contracting_layers[layer_idx])
         x = ConvBlock(layer_idx, **conv_params)(x)
 
-    x = layers.Conv2D(filters=num_classes,
+    x = layers.Conv2D(filters=channels,
                       kernel_size=(1, 1),
                       kernel_initializer=_get_kernel_initializer(filters_root, kernel_size),
                       strides=1,
                       padding=padding)(x)
 
     x = layers.Activation(activation)(x)
-    outputs = layers.Activation("softmax", name="outputs")(x)
+    outputs = layers.Activation("tanh", name="outputs")(x)
     model = Model(inputs, outputs, name="unet")
 
     return model

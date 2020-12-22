@@ -13,7 +13,7 @@ from tensorflow.keras.layers import Input, Dense
 
 from modules.layers import ConvBlock, AntialiasSampling, ResBlock, Padding2D, L2Normalize
 from modules.losses import GANLoss, PatchNCELoss
-from modules import unet
+import unet
 
 
 def Generator(input_shape, output_shape, norm_layer, resnet_blocks, impl):
@@ -156,8 +156,8 @@ class CUT_model(Model):
                  nce_temp=0.07,
                  nce_layers=[0, 3, 5, 7, 11],
                  impl='ref',
-                 model='unet'
-                 ** kwargs):
+                 model='unet',
+                 **kwargs):
         assert cut_mode in ['cut', 'fastcut']
         assert norm_layer in ['batch', 'instance']
         assert netF_units > 0
@@ -177,6 +177,7 @@ class CUT_model(Model):
         self.netD = Discriminator(target_shape, norm_layer, impl=impl)
         self.netE = Encoder(self.netG, self.nce_layers)
         self.netF = PatchSampleMLP(netF_units, netF_num_patches)
+        self.netG.summary()
 
         if cut_mode == 'cut':
             self.nce_lambda = 1.0
