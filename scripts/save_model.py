@@ -44,13 +44,15 @@ def main(args):
     # Create model
     cut = CUT_model(source_shape, target_shape,
                     cut_mode=args.mode, impl=args.impl, model='resnet', norm_layer='batch')
-    model = cut.netG
     # Restored from previous checkpoints, or initialize checkpoints from scratch
     if args.ckpt:
         latest_ckpt = tf.train.latest_checkpoint(args.ckpt)
         cut.load_weights(latest_ckpt)
+        model = cut.netG
+        # model.compile()
         print(f"Restored from {latest_ckpt}.")
     else:
+        model = cut.netG
         model.compile()
 
     model.summary()

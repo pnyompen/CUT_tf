@@ -10,13 +10,16 @@ import tensorflow as tf
 
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Dense
-
-from modules.layers import ConvBlock, AntialiasSampling, ResBlock, Padding2D, L2Normalize, ConvTransposeBlock
+from modules.layers import (
+    ConvBlock, AntialiasSampling, ResBlock, Padding2D,
+    L2Normalize,
+    ConvBlockTFlite, ResBlockTFlite
+)
 from modules.losses import GANLoss, PatchNCELoss
 import unet
 
 
-def Generator(input_shape, output_shape, norm_layer, resnet_blocks, impl):
+def Generator(input_shape, output_shape, norm_layer, resnet_blocks, impl, ngf=32):
     """ Create a Resnet-based generator.
     Adapt from Justin Johnson's neural style transfer project(https://github.com/jcjohnson/fast-neural-style).
     For BatchNorm, we use learnable affine parameters and track running statistics (mean/stddev).
@@ -25,22 +28,22 @@ def Generator(input_shape, output_shape, norm_layer, resnet_blocks, impl):
     use_bias = (norm_layer == 'instance')
 
     inputs = Input(shape=input_shape)
-    x = ConvBlock(64, 7, padding='same', use_bias=use_bias,
-                  norm_layer=norm_layer, activation='relu')(inputs)
-    x = ConvBlock(128, 3, (2, 2), padding='same', use_bias=use_bias,
-                  norm_layer=norm_layer, activation='relu')(x)
-    x = ConvBlock(256, 3, (2, 2), padding='same', use_bias=use_bias,
-                  norm_layer=norm_layer, activation='relu')(x)
+    x = ConvBlockTFlite(ngf, 7, padding='same', use_bias=use_bias,
+                        norm_layer=norm_layer, activation='relu', downsample=False)(inputs)
+    x = ConvBlockTFlite(ngf*2, 3, padding='same', use_bias=use_bias,
+                        norm_layer=norm_layer, activation='relu', downsample=True)(x)
+    x = ConvBlockTFlite(ngf*4, 3, padding='same', use_bias=use_bias,
+                        norm_layer=norm_layer, activation='relu', downsample=True)(x)
 
     for _ in range(resnet_blocks):
-        x = ResBlock(256, 3, use_bias, norm_layer)(x)
+        x = ResBlockTFlite(ngf*4, 3, use_bias, norm_layer)(x)
 
-    x = ConvTransposeBlock(128, 3, (2, 2), padding='same', use_bias=use_bias,
-                           norm_layer=norm_layer, activation='relu')(x)
-    x = ConvTransposeBlock(64, 3, (2, 2), padding='same', use_bias=use_bias,
-                           norm_layer=norm_layer, activation='relu')(x)
-    outputs = ConvBlock(output_shape[-1], 7,
-                        padding='same', activation='tanh')(x)
+    x = ConvBlockTFlite(ngf*2, 3, padding='same', use_bias=use_bias,
+                        norm_layer=norm_layer, activation='relu', upsample=True)(x)
+    x = ConvBlockTFlite(ngf, 3, padding='same', use_bias=use_bias,
+                        norm_layer=norm_layer, activation='relu', upsample=True)(x)
+    outputs = ConvBlockTFlite(output_shape[-1], 7,
+                              padding='same', activation='tanh', upsample=False)(x)
 
     return Model(inputs=inputs, outputs=outputs, name='generator')
 
@@ -148,7 +151,7 @@ class CUT_model(Model):
                  netF_num_patches=256,
                  gan_mode='lsgan',
                  nce_temp=0.07,
-                 nce_layers=[0, 3, 5, 7, 11],
+                 nce_layers=[0, 3, 6, 9],
                  impl='ref',
                  model='unet',
                  **kwargs):
@@ -165,7 +168,7 @@ class CUT_model(Model):
         self.nce_layers = nce_layers
         if model == 'resnet':
             self.netG = Generator(source_shape, target_shape,
-                                  norm_layer, resnet_blocks=9, impl=impl)
+                                  norm_layer, resnet_blocks=4, impl=impl)
         elif model == 'unet':
             self.netG = unet.build_model(*source_shape, layer_depth=5)
         self.netD = Discriminator(target_shape, norm_layer, impl=impl)
