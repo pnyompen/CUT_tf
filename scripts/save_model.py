@@ -10,6 +10,7 @@ import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
 from pathlib import Path
+import shutil
 
 sys.path.append('./')
 from modules.cut_model import CUT_model
@@ -43,14 +44,15 @@ def main(args):
     # Create model
     cut = CUT_model(source_shape, target_shape,
                     cut_mode=args.mode, impl=args.impl, model='resnet', norm_layer='batch')
-
+    model = cut.netG
     # Restored from previous checkpoints, or initialize checkpoints from scratch
     if args.ckpt:
         latest_ckpt = tf.train.latest_checkpoint(args.ckpt)
         cut.load_weights(latest_ckpt)
         print(f"Restored from {latest_ckpt}.")
+    else:
+        model.compile()
 
-    model = cut.netG
     model.summary()
 
     # Define the folders to store output information
@@ -63,12 +65,22 @@ def main(args):
 
     # モデルを変換
     converter = tf.lite.TFLiteConverter.from_saved_model(export_dir)
+
+
     # converter.allow_custom_ops = True
+    # quantize
+    # converter.optimizations = [tf.lite.Optimize.DEFAULT]
+    # converter.target_spec.supported_types = [tf.lite.constants.FLOAT16]
+    # converter.target_spec.supported_ops = [
+    #     tf.lite.OpsSet.TFLITE_BUILTINS, tf.lite.OpsSet.SELECT_TF_OPS]
+    # converter.optimizations = [tf.lite.Optimize.OPTIMIZE_FOR_SIZE]
     tflite_model = converter.convert()
 
     out_path = out_dir / 'cut.tflite'
     with open(out_path, 'wb') as f:
         f.write(tflite_model)
+
+    shutil.rmtree(export_dir)
 
     print('success')
 

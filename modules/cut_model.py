@@ -25,9 +25,8 @@ def Generator(input_shape, output_shape, norm_layer, resnet_blocks, impl):
     use_bias = (norm_layer == 'instance')
 
     inputs = Input(shape=input_shape)
-    x = Padding2D(3, pad_type='reflect')(inputs)
     x = ConvBlock(64, 7, padding='valid', use_bias=use_bias,
-                  norm_layer=norm_layer, activation='relu')(x)
+                  norm_layer=norm_layer, activation='relu')(inputs)
     x = ConvBlock(128, 3, (2, 2), padding='same', use_bias=use_bias,
                   norm_layer=norm_layer, activation='relu')(x)
     x = ConvBlock(256, 3, (2, 2), padding='same', use_bias=use_bias,
@@ -40,7 +39,6 @@ def Generator(input_shape, output_shape, norm_layer, resnet_blocks, impl):
                            norm_layer=norm_layer, activation='relu')(x)
     x = ConvTransposeBlock(64, 3, (2, 2), padding='same', use_bias=use_bias,
                            norm_layer=norm_layer, activation='relu')(x)
-    x = Padding2D(3, pad_type='reflect')(x)
     outputs = ConvBlock(output_shape[-1], 7,
                         padding='valid', activation='tanh')(x)
 
@@ -167,7 +165,7 @@ class CUT_model(Model):
         self.nce_layers = nce_layers
         if model == 'resnet':
             self.netG = Generator(source_shape, target_shape,
-                                  norm_layer, resnet_blocks=9, impl=impl)
+                                  norm_layer, resnet_blocks=6, impl=impl)
         elif model == 'unet':
             self.netG = unet.build_model(*source_shape, layer_depth=5)
         self.netD = Discriminator(target_shape, norm_layer, impl=impl)
