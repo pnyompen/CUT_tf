@@ -163,13 +163,14 @@ class ConvBlockTFlite(Layer):
             self.normalization = Lambda(lambda x: tf.identity(x))
 
     def call(self, inputs, training=None):
-        x = self.conv2d(inputs)
+        x = inputs
+        if self.upsample is not None:
+            x = self.upsample(x)
+        x = self.conv2d(x)
         x = self.normalization(x)
         x = self.activation(x)
         if self.downsample is not None:
             x = self.downsample(x)
-        if self.upsample is not None:
-            x = self.upsample(x)
         return x
 
 
