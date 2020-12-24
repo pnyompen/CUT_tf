@@ -151,7 +151,7 @@ class CUT_model(Model):
                  netF_num_patches=256,
                  gan_mode='lsgan',
                  nce_temp=0.07,
-                 nce_layers=[0, 3, 6, 9],
+                 nce_layers=[0, 3, 5, 7, 11],
                  impl='ref',
                  model='unet',
                  **kwargs):
@@ -168,7 +168,7 @@ class CUT_model(Model):
         self.nce_layers = nce_layers
         if model == 'resnet':
             self.netG = Generator(source_shape, target_shape,
-                                  norm_layer, resnet_blocks=4, impl=impl)
+                                  norm_layer, resnet_blocks=9, ngf=16, impl=impl)
         elif model == 'unet':
             self.netG = unet.build_model(*source_shape, layer_depth=5)
         self.netD = Discriminator(target_shape, norm_layer, impl=impl)
