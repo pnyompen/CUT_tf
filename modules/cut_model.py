@@ -25,7 +25,7 @@ def Generator(input_shape, output_shape, norm_layer, resnet_blocks, impl):
     use_bias = (norm_layer == 'instance')
 
     inputs = Input(shape=input_shape)
-    x = ConvBlock(64, 7, padding='valid', use_bias=use_bias,
+    x = ConvBlock(64, 7, padding='same', use_bias=use_bias,
                   norm_layer=norm_layer, activation='relu')(inputs)
     x = ConvBlock(128, 3, (2, 2), padding='same', use_bias=use_bias,
                   norm_layer=norm_layer, activation='relu')(x)
@@ -40,7 +40,7 @@ def Generator(input_shape, output_shape, norm_layer, resnet_blocks, impl):
     x = ConvTransposeBlock(64, 3, (2, 2), padding='same', use_bias=use_bias,
                            norm_layer=norm_layer, activation='relu')(x)
     outputs = ConvBlock(output_shape[-1], 7,
-                        padding='valid', activation='tanh')(x)
+                        padding='same', activation='tanh')(x)
 
     return Model(inputs=inputs, outputs=outputs, name='generator')
 
@@ -165,7 +165,7 @@ class CUT_model(Model):
         self.nce_layers = nce_layers
         if model == 'resnet':
             self.netG = Generator(source_shape, target_shape,
-                                  norm_layer, resnet_blocks=6, impl=impl)
+                                  norm_layer, resnet_blocks=9, impl=impl)
         elif model == 'unet':
             self.netG = unet.build_model(*source_shape, layer_depth=5)
         self.netD = Discriminator(target_shape, norm_layer, impl=impl)
