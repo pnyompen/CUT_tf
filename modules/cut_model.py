@@ -47,7 +47,7 @@ def Generator(input_shape, output_shape, norm_layer, resnet_blocks, impl, ngf=32
     return Model(inputs=inputs, outputs=outputs, name='generator')
 
 
-def Discriminator(input_shape, norm_layer, impl):
+def Discriminator(input_shape, norm_layer, impl, ngf=32):
     """ Create a PatchGAN discriminator.
     PatchGAN classifier described in the original pix2pix paper (https://arxiv.org/abs/1611.07004).
     Such a patch-level discriminator architecture has fewer parameters
@@ -57,16 +57,16 @@ def Discriminator(input_shape, norm_layer, impl):
     use_bias = (norm_layer == 'instance')
 
     inputs = Input(shape=input_shape)
-    x = ConvBlock(64, 4, padding='same', activation=tf.nn.leaky_relu)(inputs)
+    x = ConvBlock(ngf, 4, padding='same', activation=tf.nn.leaky_relu)(inputs)
     x = AntialiasSampling(4, mode='down', impl=impl)(x)
-    x = ConvBlock(128, 4, padding='same', use_bias=use_bias,
+    x = ConvBlock(ngf * 2, 4, padding='same', use_bias=use_bias,
                   norm_layer=norm_layer, activation=tf.nn.leaky_relu)(x)
     x = AntialiasSampling(4, mode='down', impl=impl)(x)
-    x = ConvBlock(256, 4, padding='same', use_bias=use_bias,
+    x = ConvBlock(ngf * 4, 4, padding='same', use_bias=use_bias,
                   norm_layer=norm_layer, activation=tf.nn.leaky_relu)(x)
     x = AntialiasSampling(4, mode='down', impl=impl)(x)
     x = Padding2D(1, pad_type='constant')(x)
-    x = ConvBlock(512, 4, padding='valid', use_bias=use_bias,
+    x = ConvBlock(ngf * 8, 4, padding='valid', use_bias=use_bias,
                   norm_layer=norm_layer, activation=tf.nn.leaky_relu)(x)
     x = Padding2D(1, pad_type='constant')(x)
     outputs = ConvBlock(1, 4, padding='valid')(x)
@@ -170,7 +170,7 @@ class CUT_model(Model):
                                   norm_layer, resnet_blocks=4, ngf=24, impl=impl)
         elif model == 'unet':
             self.netG = unet.build_model(*source_shape, layer_depth=5)
-        self.netD = Discriminator(target_shape, norm_layer, impl=impl)
+        self.netD = Discriminator(target_shape, norm_layer, impl=impl, ngf=24)
         self.netE = Encoder(self.netG, self.nce_layers)
         self.netF = PatchSampleMLP(netF_units, netF_num_patches)
         self.netG.summary()
