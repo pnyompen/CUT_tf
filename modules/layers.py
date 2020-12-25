@@ -124,7 +124,7 @@ class AntialiasSampling(tf.keras.layers.Layer):
         return x
 
 
-class ConvBlockTFlite(Layer):
+class ConvBlock(Layer):
     """ ConBlock layer that consists of Conv2D + Normalization + Activation.
     """
     def __init__(self,
@@ -138,7 +138,7 @@ class ConvBlockTFlite(Layer):
                  downsample=False,
                  upsample=False,
                  **kwargs):
-        super(ConvBlockTFlite, self).__init__(**kwargs)
+        super(ConvBlock, self).__init__(**kwargs)
         initializer = tf.random_normal_initializer(0., 0.02)
         self.conv2d = Conv2D(filters,
                              kernel_size,
@@ -174,85 +174,10 @@ class ConvBlockTFlite(Layer):
         return x
 
 
-class ResBlockTFlite(Layer):
-    """ ResBlock is a ConvBlock with skip connections.
-    Original Resnet paper (https://arxiv.org/pdf/1512.03385.pdf).
-    """
-    def __init__(self,
-                 filters,
-                 kernel_size,
-                 use_bias,
-                 norm_layer,
-                 **kwargs):
-        super(ResBlockTFlite, self).__init__(**kwargs)
-
-        self.reflect_pad1 = Padding2D(1, pad_type='reflect')
-        self.conv_block1 = ConvBlockTFlite(filters,
-                                     kernel_size,
-                                     padding='valid',
-                                     use_bias=use_bias,
-                                     norm_layer=norm_layer,
-                                     activation='relu')
-
-        self.reflect_pad2 = Padding2D(1, pad_type='reflect')
-        self.conv_block2 = ConvBlockTFlite(filters,
-                                     kernel_size,
-                                     padding='valid',
-                                     use_bias=use_bias,
-                                     norm_layer=norm_layer)
-
-    def call(self, inputs, training=None):
-        x = self.reflect_pad1(inputs)
-        x = self.conv_block1(x)
-
-        x = self.reflect_pad2(x)
-        x = self.conv_block2(x)
-
-        return inputs + x
-
-
-class ConvBlock(Layer):
-    """ ConBlock layer that consists of Conv2D + Normalization + Activation.
-    """
-
-    def __init__(self,
-                 filters,
-                 kernel_size,
-                 strides=(1, 1),
-                 padding='valid',
-                 use_bias=True,
-                 norm_layer=None,
-                 activation='linear',
-                 **kwargs):
-        super(ConvBlock, self).__init__(**kwargs)
-        initializer = tf.random_normal_initializer(0., 0.02)
-        self.conv2d = Conv2D(filters,
-                             kernel_size,
-                             strides,
-                             padding,
-                             use_bias=use_bias,
-                             kernel_initializer=initializer)
-        self.activation = Activation(activation)
-        if norm_layer == 'batch':
-            self.normalization = BatchNormalization()
-        elif norm_layer == 'instance':
-            self.normalization = InstanceNorm(affine=False)
-        else:
-            self.normalization = Lambda(lambda x: tf.identity(x))
-
-    def call(self, inputs, training=None):
-        x = self.conv2d(inputs)
-        x = self.normalization(x)
-        x = self.activation(x)
-
-        return x
-
-
 class ResBlock(Layer):
     """ ResBlock is a ConvBlock with skip connections.
     Original Resnet paper (https://arxiv.org/pdf/1512.03385.pdf).
     """
-
     def __init__(self,
                  filters,
                  kernel_size,
@@ -284,3 +209,4 @@ class ResBlock(Layer):
         x = self.conv_block2(x)
 
         return inputs + x
+
