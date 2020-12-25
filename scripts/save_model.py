@@ -1,5 +1,7 @@
 """ USAGE
 python ./train.py --train_src_dir ./datasets/horse2zebra/trainA --train_tar_dir ./datasets/horse2zebra/trainB --test_src_dir ./datasets/horse2zebra/testA --test_tar_dir ./datasets/horse2zebra/testB
+
+python scripts/save_model.py --out_dir='/Volumes/T5/Workspace/flutter_tflite/example/assets'
 """
 
 import sys
