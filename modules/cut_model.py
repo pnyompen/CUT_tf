@@ -27,21 +27,21 @@ def Generator(input_shape, output_shape, norm_layer, resnet_blocks, impl, ngf=32
     use_bias = (norm_layer == 'instance')
 
     inputs = Input(shape=input_shape)
-    x = ConvBlockTFlite(ngf, 7, padding='same', use_bias=use_bias,
+    x = ConvBlock(ngf, 7, padding='same', use_bias=use_bias,
                         norm_layer=norm_layer, activation='relu', downsample=False)(inputs)
-    x = ConvBlockTFlite(ngf*2, 3, padding='same', use_bias=use_bias,
+    x = ConvBlock(ngf*2, 3, padding='same', use_bias=use_bias,
                         norm_layer=norm_layer, activation='relu', downsample=True)(x)
-    x = ConvBlockTFlite(ngf*4, 3, padding='same', use_bias=use_bias,
+    x = ConvBlock(ngf*4, 3, padding='same', use_bias=use_bias,
                         norm_layer=norm_layer, activation='relu', downsample=True)(x)
 
     for _ in range(resnet_blocks):
-        x = ResBlockTFlite(ngf*4, 3, use_bias, norm_layer)(x)
+        x = ResBlock(ngf*4, 3, use_bias, norm_layer)(x)
 
-    x = ConvBlockTFlite(ngf*2, 3, padding='same', use_bias=use_bias,
+    x = ConvBlock(ngf*2, 3, padding='same', use_bias=use_bias,
                         norm_layer=norm_layer, activation='relu', upsample=True)(x)
-    x = ConvBlockTFlite(ngf, 3, padding='same', use_bias=use_bias,
+    x = ConvBlock(ngf, 3, padding='same', use_bias=use_bias,
                         norm_layer=norm_layer, activation='relu', upsample=True)(x)
-    outputs = ConvBlockTFlite(output_shape[-1], 7,
+    outputs = ConvBlock(output_shape[-1], 7,
                               padding='same', activation='tanh', upsample=False)(x)
 
     return Model(inputs=inputs, outputs=outputs, name='generator')
