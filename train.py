@@ -147,7 +147,7 @@ def create_dataset(args):
         [args.train_src_dir+'/*.jpg', args.train_src_dir+'/*.png'], shuffle=True)
     train_src_dataset = (
         train_src_dataset.map(lambda x: load_image(x, crop_size=args.crop_size, load_size=args.load_size,
-                                                   preprocess=args.preprocess), num_parallel_calls=tf.data.experimental.AUTOTUNE)
+                                                   preprocess=args.preprocess, is_src=True), num_parallel_calls=tf.data.experimental.AUTOTUNE)
         .batch(args.batch_size, drop_remainder=True)
         .prefetch(tf.data.experimental.AUTOTUNE)
     )
@@ -156,7 +156,7 @@ def create_dataset(args):
         [args.train_tar_dir+'/*.jpg', args.train_tar_dir+'/*.png'], shuffle=True)
     train_tar_dataset = (
         train_tar_dataset.map(lambda x: load_image(x, crop_size=args.crop_size, load_size=args.load_size,
-                                                   preprocess=args.preprocess), num_parallel_calls=tf.data.experimental.AUTOTUNE)
+                                                   preprocess=args.preprocess, is_src=False), num_parallel_calls=tf.data.experimental.AUTOTUNE)
         .batch(args.batch_size, drop_remainder=True)
         .prefetch(tf.data.experimental.AUTOTUNE)
     )
@@ -168,7 +168,7 @@ def create_dataset(args):
         [args.test_src_dir+'/*.jpg', args.test_src_dir+'/*.png'])
     test_src_dataset = (
         test_src_dataset.map(lambda x: load_image(x, crop_size=args.crop_size, load_size=args.load_size,
-                                                  preprocess=args.preprocess), num_parallel_calls=tf.data.experimental.AUTOTUNE)
+                                                  preprocess=args.preprocess, is_src=True), num_parallel_calls=tf.data.experimental.AUTOTUNE)
         .batch(args.batch_size, drop_remainder=True)
         .prefetch(tf.data.experimental.AUTOTUNE)
     )
@@ -177,7 +177,7 @@ def create_dataset(args):
         [args.test_tar_dir+'/*.jpg', args.test_tar_dir+'/*.png'])
     test_tar_dataset = (
         test_tar_dataset.map(lambda x: load_image(x, crop_size=args.crop_size, load_size=args.load_size,
-                                                  preprocess=args.preprocess), num_parallel_calls=tf.data.experimental.AUTOTUNE)
+                                                  preprocess=args.preprocess, is_src=False), num_parallel_calls=tf.data.experimental.AUTOTUNE)
         .batch(args.batch_size, drop_remainder=True)
         .prefetch(tf.data.experimental.AUTOTUNE)
     )

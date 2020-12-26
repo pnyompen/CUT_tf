@@ -15,7 +15,7 @@ def create_dir(dir):
 
 
 @tf.function
-def load_image(image_file, crop_size, load_size, preprocess='none', data_augmentation=True):
+def load_image(image_file, crop_size, load_size, preprocess='none', data_augmentation=True, is_src=False):
     """ Load the image file.
     """
     image = tf.io.read_file(image_file)
@@ -24,9 +24,9 @@ def load_image(image_file, crop_size, load_size, preprocess='none', data_augment
 
     if data_augmentation:
         image = tf.image.random_flip_left_right(image)
-        image = tf.image.random_flip_up_down(image)
-        image = tf.image.random_contrast(image, lower=0.2, upper=1.8)
-        image = tf.image.random_brightness(image, max_delta=63)
+        if is_src:
+            image = tf.image.random_brightness(image, max_delta=63)
+            image = tf.image.random_contrast(image, lower=0.2, upper=1.8)
     if 'scale_shortside' in preprocess:
         image = resize_image_keep_aspect(image, load_size)
     if 'crop' in preprocess:
