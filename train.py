@@ -92,7 +92,7 @@ def main(args):
     # Create model
     cut = CUT_model(source_shape, target_shape,
                     cut_mode=args.mode, impl=args.impl, model=args.model, norm_layer='batch')
-
+    cut.summary()
     # Define learning rate schedule
     lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(initial_learning_rate=args.lr,
                                                                  decay_steps=args.lr_decay_step,

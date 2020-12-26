@@ -1,7 +1,7 @@
 """ USAGE
 python ./train.py --train_src_dir ./datasets/horse2zebra/trainA --train_tar_dir ./datasets/horse2zebra/trainB --test_src_dir ./datasets/horse2zebra/testA --test_tar_dir ./datasets/horse2zebra/testB
 
-python scripts/save_model.py --out_dir='/Volumes/T5/Workspace/flutter_tflite/example/assets'
+python scripts/save_model.py --out_path='/Volumes/T5/Workspace/flutter_tflite/example/assets/cut.tflite' --ckpt ckpts/resnet
 """
 
 import sys
@@ -13,6 +13,7 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 from pathlib import Path
 import shutil
+from PIL import Image
 
 sys.path.append('./')
 from modules.cut_model import CUT_model
@@ -28,8 +29,10 @@ def ArgParse():
                         type=str, default='cut', choices=['cut', 'fastcut'])
     parser.add_argument('--impl', help="(Faster)Custom op use:'cuda'; (Slower)Tensorflow op use:'ref'",
                         type=str, default='ref', choices=['ref', 'cuda'])
-    parser.add_argument('--out_dir', help='Outputs folder',
+    parser.add_argument('--tmp_dir', help='Outputs folder',
                         type=str, default='./output')
+    parser.add_argument('--out_path', help='Outputs folder',
+                        type=str, default='/Volumes/T5/Workspace/flutter_tflite/example/assets/cut.tflite')
     # Misc
     parser.add_argument(
         '--ckpt', help='Resume training from checkpoint', type=str)
@@ -46,6 +49,7 @@ def main(args):
     # Create model
     cut = CUT_model(source_shape, target_shape,
                     cut_mode=args.mode, impl=args.impl, model='resnet', norm_layer='batch')
+    cut.summary()
     # Restored from previous checkpoints, or initialize checkpoints from scratch
     if args.ckpt:
         latest_ckpt = tf.train.latest_checkpoint(args.ckpt)
@@ -57,14 +61,26 @@ def main(args):
         model = cut.netG
         model.compile()
 
-    model.summary()
-
     # Define the folders to store output information
-    out_dir = Path(args.out_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
+    tmp_dir = Path(args.tmp_dir)
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+    out_path = Path(args.out_path)
+
+    test_img_path = 'test/test3.jpg'
+    img = Image.open(test_img_path).resize((256, 256))
+    img = (np.array(img) / 127.5) - 1.0
+
+    # add N dim
+    input_data = np.expand_dims(img, axis=0)
+    synthesized = model.predict(input_data)[0]
+    synthesized = (synthesized + 1) * 127.5
+    synthesized = np.array(synthesized, dtype=np.uint8)
+    im = Image.fromarray(synthesized)
+    im.save(tmp_dir / 'temp.png')
+
 
     # モデルを保存
-    export_dir = str(out_dir / 'tmp_model')
+    export_dir = str(tmp_dir / 'tmp_model')
     tf.saved_model.save(model, export_dir)
 
     # モデルを変換
@@ -80,7 +96,6 @@ def main(args):
     # converter.optimizations = [tf.lite.Optimize.OPTIMIZE_FOR_SIZE]
     tflite_model = converter.convert()
 
-    out_path = out_dir / 'cut.tflite'
     with open(out_path, 'wb') as f:
         f.write(tflite_model)
 
@@ -88,6 +103,24 @@ def main(args):
 
     print('success')
 
+    # test
+    interpreter = tf.lite.Interpreter(model_path=out_path)
+    interpreter.allocate_tensors()
+
+    input_details = interpreter.get_input_details()
+    output_details = interpreter.get_output_details()
+
+    # check the type of the input tensor
+    floating_model = input_details[0]['dtype'] == np.float32
+
+    # NxHxWxC, H:1, W:2
+    height = input_details[0]['shape'][1]
+    width = input_details[0]['shape'][2]
+    test_img_path = 'datasets/test/trainA/1000.png'
+    img = Image.open(test_img_path).resize((width, height))
+
+    # add N dim
+    input_data = np.expand_dims(img, axis=0)
 
 if __name__ == '__main__':
     main(ArgParse())

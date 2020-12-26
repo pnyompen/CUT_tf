@@ -12,7 +12,7 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Dense
 from modules.layers import (
     ConvBlock, AntialiasSampling, ResBlock, Padding2D,
-    L2Normalize,
+    L2Normalize,Padding2D
 )
 from modules.losses import GANLoss, PatchNCELoss
 import unet
@@ -27,8 +27,9 @@ def Generator(input_shape, output_shape, norm_layer, resnet_blocks, impl, ngf=32
     use_bias = (norm_layer == 'instance')
 
     inputs = Input(shape=input_shape)
-    x = ConvBlock(ngf, 7, padding='same', use_bias=use_bias,
-                        norm_layer=norm_layer, activation='relu', downsample=False)(inputs)
+    x = Padding2D(padding=(3, 3))(inputs)
+    x = ConvBlock(ngf, 7, padding='valid', use_bias=use_bias,
+                        norm_layer=norm_layer, activation='relu', downsample=False)(x)
     x = ConvBlock(ngf*2, 3, padding='same', use_bias=use_bias,
                         norm_layer=norm_layer, activation='relu', downsample=True)(x)
     x = ConvBlock(ngf*4, 3, padding='same', use_bias=use_bias,
@@ -41,8 +42,9 @@ def Generator(input_shape, output_shape, norm_layer, resnet_blocks, impl, ngf=32
                         norm_layer=norm_layer, activation='relu', upsample=True)(x)
     x = ConvBlock(ngf, 3, padding='same', use_bias=use_bias,
                         norm_layer=norm_layer, activation='relu', upsample=True)(x)
+    x = Padding2D(padding=(3, 3))(x)
     outputs = ConvBlock(output_shape[-1], 7,
-                              padding='same', activation='tanh', upsample=False)(x)
+                              padding='valid', activation='tanh', upsample=False)(x)
 
     return Model(inputs=inputs, outputs=outputs, name='generator')
 
@@ -173,7 +175,6 @@ class CUT_model(Model):
         self.netD = Discriminator(target_shape, norm_layer, impl=impl, ngf=24)
         self.netE = Encoder(self.netG, self.nce_layers)
         self.netF = PatchSampleMLP(netF_units, netF_num_patches)
-        self.netG.summary()
 
         if cut_mode == 'cut':
             self.nce_lambda = 1.0
@@ -245,3 +246,7 @@ class CUT_model(Model):
         return {'D_loss': D_loss,
                 'G_loss': G_loss,
                 'NCE_loss': NCE_loss}
+    
+    def summary(self):
+        for model in [self.netG, self.netE, self.netD]:
+            model.summary()
