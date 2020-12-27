@@ -20,17 +20,18 @@ def load_image(image_file, crop_size, load_size, preprocess='none', data_augment
     """
     image = tf.io.read_file(image_file)
     image = tf.image.decode_image(image, expand_animations=False, channels=3)
+
+    if src_data_augmentation:
+        image = tf.image.random_brightness(image, max_delta=63)
+        image = tf.image.random_contrast(image, lower=0.2, upper=1.8)
     image = (tf.cast(image, tf.float32) / 127.5) - 1.0
 
-    if data_augmentation:
-        image = tf.image.random_flip_left_right(image)
-    if src_data_augmentation:
-        image = tf.image.random_brightness(image, max_delta=0.25)
-        image = tf.image.random_contrast(image, lower=0.2, upper=1.8)
     if 'scale_shortside' in preprocess:
         image = resize_image_keep_aspect(image, load_size)
     if 'crop' in preprocess:
         image = tf.image.random_crop(image, (crop_size, crop_size, 3))
+    if data_augmentation:
+        image = tf.image.random_flip_left_right(image)
     if tf.shape(image)[-1] == 1:
         image = tf.tile(image, [1, 1, 3])
 
