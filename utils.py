@@ -25,7 +25,7 @@ def load_image(image_file, crop_size, load_size, preprocess='none', data_augment
     if data_augmentation:
         image = tf.image.random_flip_left_right(image)
     if src_data_augmentation:
-        image = tf.image.random_brightness(image, max_delta=63)
+        image = tf.image.random_brightness(image, max_delta=0.25)
         image = tf.image.random_contrast(image, lower=0.2, upper=1.8)
     if 'scale_shortside' in preprocess:
         image = resize_image_keep_aspect(image, load_size)
