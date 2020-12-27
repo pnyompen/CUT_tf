@@ -1,7 +1,7 @@
 """ USAGE
 python ./train.py --train_src_dir ./datasets/horse2zebra/trainA --train_tar_dir ./datasets/horse2zebra/trainB --test_src_dir ./datasets/horse2zebra/testA --test_tar_dir ./datasets/horse2zebra/testB
 
-python scripts/save_model.py --out_path='/Volumes/T5/Workspace/flutter_tflite/example/assets/cut.tflite' --ckpt ckpts/resnet
+python scripts/save_model.py --out_path='/Volumes/T5/Workspace/neural_camera/assets/cut.tflite' --ckpt ckpts/resnet
 """
 
 import sys
@@ -48,7 +48,8 @@ def main(args):
 
     # Create model
     cut = CUT_model(source_shape, target_shape,
-                    cut_mode=args.mode, impl=args.impl, model='resnet', norm_layer='batch')
+                    cut_mode=args.mode, impl=args.impl,
+                    model='unet', norm_layer='batch')
     cut.summary()
     # Restored from previous checkpoints, or initialize checkpoints from scratch
     if args.ckpt:
@@ -86,13 +87,11 @@ def main(args):
     # モデルを変換
     converter = tf.lite.TFLiteConverter.from_saved_model(export_dir)
 
-
-    # converter.allow_custom_ops = True
     # quantize
     # converter.optimizations = [tf.lite.Optimize.DEFAULT]
-    # converter.target_spec.supported_types = [tf.lite.constants.FLOAT16]
-    # converter.target_spec.supported_ops = [
-    #     tf.lite.OpsSet.TFLITE_BUILTINS, tf.lite.OpsSet.SELECT_TF_OPS]
+    converter.target_spec.supported_ops = [
+        tf.lite.OpsSet.TFLITE_BUILTINS, tf.lite.OpsSet.SELECT_TF_OPS]
+    # converter.target_spec.supported_types = [tf.float16]
     # converter.optimizations = [tf.lite.Optimize.OPTIMIZE_FOR_SIZE]
     tflite_model = converter.convert()
 
@@ -102,25 +101,6 @@ def main(args):
     shutil.rmtree(export_dir)
 
     print('success')
-
-    # test
-    interpreter = tf.lite.Interpreter(model_path=out_path)
-    interpreter.allocate_tensors()
-
-    input_details = interpreter.get_input_details()
-    output_details = interpreter.get_output_details()
-
-    # check the type of the input tensor
-    floating_model = input_details[0]['dtype'] == np.float32
-
-    # NxHxWxC, H:1, W:2
-    height = input_details[0]['shape'][1]
-    width = input_details[0]['shape'][2]
-    test_img_path = 'datasets/test/trainA/1000.png'
-    img = Image.open(test_img_path).resize((width, height))
-
-    # add N dim
-    input_data = np.expand_dims(img, axis=0)
 
 if __name__ == '__main__':
     main(ArgParse())

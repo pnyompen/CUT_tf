@@ -13,7 +13,7 @@ import numpy as np
 from tensorflow.keras.layers import (
     Layer, Conv2D, Activation, BatchNormalization,
     Lambda, Conv2DTranspose, AveragePooling2D,
-    UpSampling2D
+    UpSampling2D, Conv2DTranspose
 )
 from modules.ops.upfirdn_2d import upsample_2d, downsample_2d
 
@@ -26,10 +26,12 @@ class Padding2D(Layer):
     Returns:
         A padded tensor with the same type as the input tensor.
     """
+
     def __init__(self, padding=(1, 1), pad_type='constant', **kwargs):
         assert pad_type in ['constant', 'reflect', 'symmetric']
         super(Padding2D, self).__init__(**kwargs)
-        self.padding = (padding, padding) if type(padding) is int else tuple(padding)
+        self.padding = (padding, padding) if type(
+            padding) is int else tuple(padding)
         self.pad_type = pad_type
 
     def call(self, inputs, training=None):
@@ -47,18 +49,19 @@ class Padding2D(Layer):
 class InstanceNorm(tf.keras.layers.Layer):
     """ Instance Normalization layer (https://arxiv.org/abs/1607.08022).
     """
-    
+
     def __init__(self, epsilon=1e-5, affine=True, **kwargs):
         super(InstanceNorm, self).__init__(**kwargs)
         self.epsilon = epsilon
         self.affine = affine
- 
+
     def build(self, input_shape):
         if self.affine:
             self.gamma = self.add_weight(name='gamma',
-                                        shape=(input_shape[-1],),
-                                        initializer=tf.random_normal_initializer(0, 0.02),
-                                        trainable=True)
+                                         shape=(input_shape[-1],),
+                                         initializer=tf.random_normal_initializer(
+                                             0, 0.02),
+                                         trainable=True)
             self.beta = self.add_weight(name='beta',
                                         shape=(input_shape[-1],),
                                         initializer=tf.zeros_initializer(),
@@ -69,7 +72,8 @@ class InstanceNorm(tf.keras.layers.Layer):
 
     def call(self, inputs, training=None):
         mean, var = tf.nn.moments(inputs, axes=[1, 2], keepdims=True)
-        x = tf.divide(tf.subtract(inputs, mean), tf.math.sqrt(tf.add(var, self.epsilon)))
+        x = tf.divide(tf.subtract(inputs, mean),
+                      tf.math.sqrt(tf.add(var, self.epsilon)))
 
         return self.gamma * x + self.beta
 
@@ -77,23 +81,26 @@ class InstanceNorm(tf.keras.layers.Layer):
 class L2Normalize(Layer):
     """ L2 Normalization layer.
     """
+
     def __init__(self, epsilon=1e-10, **kwargs):
         super(L2Normalize, self).__init__(**kwargs)
         self.epsilon = epsilon
 
     def call(self, inputs, training=None):
-        norm_factor = tf.math.sqrt(tf.reduce_sum(inputs**2, axis=1, keepdims=True))
-        
+        norm_factor = tf.math.sqrt(tf.reduce_sum(
+            inputs**2, axis=1, keepdims=True))
+
         return inputs / (norm_factor + self.epsilon)
 
 
 class AntialiasSampling(tf.keras.layers.Layer):
     """ Down/Up sampling layer with anti-alias.
     """
+
     def __init__(self,
                  kernel_size,
                  mode,
-                 impl, 
+                 impl,
                  **kwargs):
         super(AntialiasSampling, self).__init__(**kwargs)
         if(kernel_size == 1):
@@ -115,9 +122,11 @@ class AntialiasSampling(tf.keras.layers.Layer):
 
     def call(self, inputs, training=None):
         if self.mode == 'up':
-            x = upsample_2d(inputs, k=self.k, data_format='NHWC', impl=self.impl)
+            x = upsample_2d(inputs, k=self.k,
+                            data_format='NHWC', impl=self.impl)
         elif self.mode == 'down':
-            x = downsample_2d(inputs, k=self.k, data_format='NHWC', impl=self.impl)
+            x = downsample_2d(inputs, k=self.k,
+                              data_format='NHWC', impl=self.impl)
         else:
             raise ValueError(f'Unsupported sampling mode: {self.mode}')
 
@@ -127,10 +136,11 @@ class AntialiasSampling(tf.keras.layers.Layer):
 class ConvBlock(Layer):
     """ ConBlock layer that consists of Conv2D + Normalization + Activation.
     """
+
     def __init__(self,
                  filters,
                  kernel_size,
-                 strides=(1,1),
+                 strides=(1, 1),
                  padding='valid',
                  use_bias=True,
                  norm_layer=None,
@@ -140,21 +150,25 @@ class ConvBlock(Layer):
                  **kwargs):
         super(ConvBlock, self).__init__(**kwargs)
         initializer = tf.random_normal_initializer(0., 0.02)
-        self.conv2d = Conv2D(filters,
-                             kernel_size,
-                             strides,
-                             padding,
-                             use_bias=use_bias,
-                             kernel_initializer=initializer)
+        if upsample:
+            self.conv2d = Conv2DTranspose(filters,
+                                          kernel_size,
+                                          (2, 2),
+                                          padding,
+                                          use_bias=use_bias,
+                                          kernel_initializer=initializer)
+        else:
+            self.conv2d = Conv2D(filters,
+                                 kernel_size,
+                                 strides,
+                                 padding,
+                                 use_bias=use_bias,
+                                 kernel_initializer=initializer)
         self.activation = Activation(activation)
         if downsample:
             self.downsample = AveragePooling2D((2, 2))
         else:
             self.downsample = None
-        if upsample:
-            self.upsample = UpSampling2D((2, 2), interpolation='bilinear')
-        else:
-            self.upsample = None
         if norm_layer == 'batch':
             self.normalization = BatchNormalization()
         elif norm_layer == 'instance':
@@ -164,8 +178,6 @@ class ConvBlock(Layer):
 
     def call(self, inputs, training=None):
         x = inputs
-        if self.upsample is not None:
-            x = self.upsample(x)
         x = self.conv2d(x)
         x = self.normalization(x)
         x = self.activation(x)
@@ -178,6 +190,7 @@ class ResBlock(Layer):
     """ ResBlock is a ConvBlock with skip connections.
     Original Resnet paper (https://arxiv.org/pdf/1512.03385.pdf).
     """
+
     def __init__(self,
                  filters,
                  kernel_size,
@@ -209,4 +222,3 @@ class ResBlock(Layer):
         x = self.conv_block2(x)
 
         return inputs + x
-
