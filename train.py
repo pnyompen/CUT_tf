@@ -60,6 +60,7 @@ def ArgParse():
                         choices=['none', 'crop', 'scale_shortside_and_crop'])
     parser.add_argument('--crop_size', type=int, default=256)
     parser.add_argument('--load_size', type=int, default=256)
+    parser.add_argument('--src_data_augmentation', action='store_true')
 
     args = parser.parse_args()
 
@@ -147,7 +148,7 @@ def create_dataset(args):
         [args.train_src_dir+'/*.jpg', args.train_src_dir+'/*.png'], shuffle=True)
     train_src_dataset = (
         train_src_dataset.map(lambda x: load_image(x, crop_size=args.crop_size, load_size=args.load_size,
-                                                   preprocess=args.preprocess), num_parallel_calls=tf.data.experimental.AUTOTUNE)
+                                                   preprocess=args.preprocess, src_data_augmentation=args.src_data_augmentation), num_parallel_calls=tf.data.experimental.AUTOTUNE)
         .batch(args.batch_size, drop_remainder=True)
         .prefetch(tf.data.experimental.AUTOTUNE)
     )
@@ -168,7 +169,7 @@ def create_dataset(args):
         [args.test_src_dir+'/*.jpg', args.test_src_dir+'/*.png'])
     test_src_dataset = (
         test_src_dataset.map(lambda x: load_image(x, crop_size=args.crop_size, load_size=args.load_size,
-                                                  preprocess=args.preprocess), num_parallel_calls=tf.data.experimental.AUTOTUNE)
+                                                  preprocess=args.preprocess, src_data_augmentation=args.src_data_augmentation), num_parallel_calls=tf.data.experimental.AUTOTUNE)
         .batch(args.batch_size, drop_remainder=True)
         .prefetch(tf.data.experimental.AUTOTUNE)
     )
