@@ -8,11 +8,9 @@ import datetime
 import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
-import warnings
 
 from modules.cut_model import CUT_model
 from utils import create_dir, load_image
-warnings.filterwarnings('ignore')
 
 
 def ArgParse():

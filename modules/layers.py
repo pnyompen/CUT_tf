@@ -32,7 +32,6 @@ class ConvBlockG(Layer):
                  activation='relu',
                  **kwargs):
         super(ConvBlockG, self).__init__(**kwargs)
-        initializer = tf.random_normal_initializer(0., 0.02)
         self.activation = Activation(activation)
         if norm_layer == 'batch':
             self.normalization = BatchNormalization()
@@ -45,7 +44,6 @@ class ConvBlockG(Layer):
                 kernel_size=kernel_size,
                 strides=strides,
                 padding=padding,
-                depthwise_initializer=initializer,
                 use_bias=use_bias),
             self.normalization,
             self.activation,
@@ -53,7 +51,6 @@ class ConvBlockG(Layer):
                    kernel_size=(1, 1),
                    strides=(1, 1),
                    padding=padding,
-                   kernel_initializer=initializer,
                    use_bias=use_bias),
             self.normalization,
             self.activation,
@@ -78,7 +75,6 @@ class ConvTransposeBlockG(Layer):
                  activation='linear',
                  **kwargs):
         super(ConvTransposeBlockG, self).__init__(**kwargs)
-        initializer = tf.random_normal_initializer(0., 0.02)
         self.activation = Activation(activation)
         if norm_layer == 'batch':
             self.normalization = BatchNormalization()
@@ -91,7 +87,6 @@ class ConvTransposeBlockG(Layer):
                 kernel_size=kernel_size,
                 strides=(1, 1),
                 padding=padding,
-                depthwise_initializer=initializer,
                 use_bias=use_bias),
             self.normalization,
             self.activation,
@@ -99,7 +94,6 @@ class ConvTransposeBlockG(Layer):
                             kernel_size=(1, 1),
                             strides=(2, 2),
                             padding=padding,
-                            kernel_initializer=initializer,
                             use_bias=use_bias),
             self.normalization,
             self.activation,
@@ -123,7 +117,6 @@ class ResBlockG(Layer):
                  activation='relu',
                  ** kwargs):
         super(ResBlockG, self).__init__(**kwargs)
-        initializer = tf.random_normal_initializer(0., 0.02)
         self.activation = Activation(activation)
         if norm_layer == 'batch':
             self.normalization = BatchNormalization()
@@ -136,20 +129,17 @@ class ResBlockG(Layer):
                                   kernel_size=(1, 1),
                                   strides=(1, 1),
                                   padding='valid',
-                                  kernel_initializer=initializer,
                                   use_bias=use_bias)
         self.reflect_pad = Padding2D(1, pad_type='reflect')
         self.conv_block2 = DepthwiseConv2D(
             kernel_size=kernel_size,
             strides=(1, 1),
             padding='valid',
-            depthwise_initializer=initializer,
             use_bias=use_bias)
         self.conv_block3 = Conv2D(filters=filters,
                                   kernel_size=(1, 1),
                                   strides=(1, 1),
                                   padding='valid',
-                                  kernel_initializer=initializer,
                                   use_bias=use_bias)
 
     def call(self, inputs, training=None):
