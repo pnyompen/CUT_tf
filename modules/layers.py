@@ -45,6 +45,7 @@ class ConvBlockG(Layer):
                 kernel_size=kernel_size,
                 strides=strides,
                 padding=padding,
+                depthwise_initializer=initializer,
                 use_bias=use_bias),
             self.normalization,
             self.activation,
@@ -90,6 +91,7 @@ class ConvTransposeBlockG(Layer):
                 kernel_size=kernel_size,
                 strides=(1, 1),
                 padding=padding,
+                depthwise_initializer=initializer,
                 use_bias=use_bias),
             self.normalization,
             self.activation,
@@ -141,6 +143,7 @@ class ResBlockG(Layer):
             kernel_size=kernel_size,
             strides=(1, 1),
             padding='valid',
+            depthwise_initializer=initializer,
             use_bias=use_bias)
         self.conv_block3 = Conv2D(filters=filters,
                                   kernel_size=(1, 1),
