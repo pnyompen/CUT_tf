@@ -23,7 +23,7 @@ def load_image(image_file, crop_size, load_size, preprocess='none', data_augment
 
     if src_data_augmentation:
         image = tf.image.random_brightness(image, max_delta=0.25)
-        image = tf.image.random_contrast(image, lower=0.75, upper=1.25)
+        image = tf.image.random_contrast(image, lower=0.5, upper=1.5)
     image = (tf.cast(image, tf.float32) / 127.5) - 1.0
 
     if 'scale_shortside' in preprocess:
