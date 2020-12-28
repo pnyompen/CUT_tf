@@ -12,7 +12,7 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Dense
 from modules.layers import (
     ConvBlock, AntialiasSampling, ResBlock, Padding2D,
-    L2Normalize, Padding2D, ResBlockG, ConvBlockG, ConvTransposeBlockG
+    L2Normalize, Padding2D, InverteResBlock, ConvBlockG, ConvTransposeBlockG
 )
 from modules.losses import GANLoss, PatchNCELoss
 import unet
@@ -36,7 +36,7 @@ def Generator(input_shape, output_shape, norm_layer, resnet_blocks, impl, ngf=32
                    norm_layer=norm_layer, activation='relu')(x)
 
     for _ in range(resnet_blocks):
-        x = ResBlockG(ngf*4, 3, use_bias, norm_layer)(x)
+        x = InverteResBlock(ngf*4, 3, use_bias, norm_layer)(x)
 
     x = ConvTransposeBlockG(ngf*2, 3, padding='same', use_bias=use_bias,
                             norm_layer=norm_layer, activation='relu')(x)
@@ -169,7 +169,7 @@ class CUT_model(Model):
         self.nce_layers = nce_layers
         if model == 'resnet':
             self.netG = Generator(source_shape, target_shape,
-                                  norm_layer, resnet_blocks=4, ngf=32, impl=impl)
+                                  norm_layer, resnet_blocks=4, ngf=16, impl=impl)
         elif model == 'unet':
             self.netG = unet.build_model(*source_shape, layer_depth=5)
         self.netD = Discriminator(target_shape, norm_layer, impl=impl, ngf=32)

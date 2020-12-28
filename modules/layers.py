@@ -32,32 +32,31 @@ class ConvBlockG(Layer):
                  activation='relu',
                  **kwargs):
         super(ConvBlockG, self).__init__(**kwargs)
-        self.activation = Activation(activation)
         if norm_layer == 'batch':
-            self.normalization = BatchNormalization()
+            normalization = BatchNormalization()
         elif norm_layer == 'instance':
-            self.normalization = InstanceNorm(affine=False)
+            normalization = InstanceNorm(affine=False)
         else:
-            self.normalization = Lambda(lambda x: tf.identity(x))
-        self.conv2d = tf.keras.Sequential([
+            normalization = Lambda(lambda x: tf.identity(x))
+        self.net = tf.keras.Sequential([
             DepthwiseConv2D(
                 kernel_size=kernel_size,
                 strides=strides,
                 padding=padding,
                 use_bias=use_bias),
-            self.normalization,
-            self.activation,
+            normalization,
+            Activation('relu'),
             Conv2D(filters=filters,
                    kernel_size=(1, 1),
                    strides=(1, 1),
                    padding=padding,
                    use_bias=use_bias),
-            self.normalization,
-            self.activation,
+            normalization,
+            Activation(activation),
         ])
 
     def call(self, inputs, training=None):
-        x = self.conv2d(inputs)
+        x = self.net(inputs)
         return x
 
 
@@ -77,34 +76,34 @@ class ConvTransposeBlockG(Layer):
         super(ConvTransposeBlockG, self).__init__(**kwargs)
         self.activation = Activation(activation)
         if norm_layer == 'batch':
-            self.normalization = BatchNormalization()
+            normalization = BatchNormalization()
         elif norm_layer == 'instance':
-            self.normalization = InstanceNorm(affine=False)
+            normalization = InstanceNorm(affine=False)
         else:
-            self.normalization = Lambda(lambda x: tf.identity(x))
-        self.conv2d = tf.keras.Sequential([
+            normalization = Lambda(lambda x: tf.identity(x))
+        self.net = tf.keras.Sequential([
             DepthwiseConv2D(
                 kernel_size=kernel_size,
                 strides=(1, 1),
                 padding=padding,
                 use_bias=use_bias),
-            self.normalization,
-            self.activation,
+            normalization,
+            Activation('relu'),
             Conv2DTranspose(filters=filters,
                             kernel_size=(1, 1),
                             strides=(2, 2),
                             padding=padding,
                             use_bias=use_bias),
-            self.normalization,
-            self.activation,
+            normalization,
+            Activation(activation),
         ])
 
     def call(self, inputs, training=None):
-        x = self.conv2d(inputs)
+        x = self.net(inputs)
         return x
 
 
-class ResBlockG(Layer):
+class InverteResBlock(Layer):
     """ ResBlock is a ConvBlock with skip connections.
     Original Resnet paper (https://arxiv.org/pdf/1512.03385.pdf).
     """
@@ -115,38 +114,41 @@ class ResBlockG(Layer):
                  use_bias,
                  norm_layer,
                  activation='relu',
+                 t=6,
                  ** kwargs):
-        super(ResBlockG, self).__init__(**kwargs)
-        self.activation = Activation(activation)
+        super(InverteResBlock, self).__init__(**kwargs)
         if norm_layer == 'batch':
-            self.normalization = BatchNormalization()
+            normalization = BatchNormalization()
         elif norm_layer == 'instance':
-            self.normalization = InstanceNorm(affine=False)
+            normalization = InstanceNorm(affine=False)
         else:
-            self.normalization = Lambda(lambda x: tf.identity(x))
+            normalization = Lambda(lambda x: tf.identity(x))
 
-        self.conv_block1 = Conv2D(filters=filters,
-                                  kernel_size=(1, 1),
-                                  strides=(1, 1),
-                                  padding='valid',
-                                  use_bias=use_bias)
-        self.reflect_pad = Padding2D(1, pad_type='reflect')
-        self.conv_block2 = DepthwiseConv2D(
-            kernel_size=kernel_size,
-            strides=(1, 1),
-            padding='valid',
-            use_bias=use_bias)
-        self.conv_block3 = Conv2D(filters=filters,
-                                  kernel_size=(1, 1),
-                                  strides=(1, 1),
-                                  padding='valid',
-                                  use_bias=use_bias)
+        self.net = tf.keras.Sequential([
+            Conv2D(filters=filters * t,
+                   kernel_size=(1, 1),
+                   strides=(1, 1),
+                   padding='valid',
+                   use_bias=use_bias),
+            normalization,
+            Activation('relu'),
+            Padding2D(1, pad_type='reflect'),
+            DepthwiseConv2D(
+                kernel_size=kernel_size,
+                strides=(1, 1),
+                padding='valid',
+                use_bias=use_bias),
+            normalization,
+            Activation('relu'),
+            Conv2D(filters=filters,
+                   kernel_size=(1, 1),
+                   strides=(1, 1),
+                   padding='valid',
+                   use_bias=use_bias),
+            normalization])
 
     def call(self, inputs, training=None):
-        x = self.conv_block1(inputs)
-        x = self.reflect_pad(x)
-        x = self.conv_block2(x)
-        x = self.conv_block3(x)
+        x = self.net(inputs)
         return inputs + x
 
 
