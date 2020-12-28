@@ -13,18 +13,152 @@ import numpy as np
 from tensorflow.keras.layers import (
     Layer, Conv2D, Activation, BatchNormalization,
     Lambda, Conv2DTranspose, AveragePooling2D,
-    UpSampling2D, Conv2DTranspose
+    UpSampling2D, Conv2DTranspose, DepthwiseConv2D
 )
 from modules.ops.upfirdn_2d import upsample_2d, downsample_2d
 
 
+class ConvBlockG(Layer):
+    """ ConBlock layer that consists of Conv2D + Normalization + Activation.
+    """
+
+    def __init__(self,
+                 filters,
+                 kernel_size,
+                 strides=(1, 1),
+                 padding='valid',
+                 use_bias=True,
+                 norm_layer=None,
+                 activation='relu',
+                 **kwargs):
+        super(ConvBlockG, self).__init__(**kwargs)
+        initializer = tf.random_normal_initializer(0., 0.02)
+        self.activation = Activation(activation)
+        if norm_layer == 'batch':
+            self.normalization = BatchNormalization()
+        elif norm_layer == 'instance':
+            self.normalization = InstanceNorm(affine=False)
+        else:
+            self.normalization = Lambda(lambda x: tf.identity(x))
+        self.conv2d = tf.keras.Sequential([
+            DepthwiseConv2D(
+                kernel_size=kernel_size,
+                strides=strides,
+                padding=padding,
+                use_bias=use_bias),
+            self.normalization,
+            self.activation,
+            Conv2D(filters=filters,
+                   kernel_size=(1, 1),
+                   strides=(1, 1),
+                   padding=padding,
+                   kernel_initializer=initializer,
+                   use_bias=use_bias),
+            self.normalization,
+            self.activation,
+        ])
+
+    def call(self, inputs, training=None):
+        x = self.conv2d(inputs)
+        return x
+
+
+class ConvTransposeBlockG(Layer):
+    """ ConvTransposeBlock layer consists of Conv2DTranspose + Normalization + Activation.
+    """
+
+    def __init__(self,
+                 filters,
+                 kernel_size,
+                 strides=(2, 2),
+                 padding='valid',
+                 use_bias=True,
+                 norm_layer=None,
+                 activation='linear',
+                 **kwargs):
+        super(ConvTransposeBlockG, self).__init__(**kwargs)
+        initializer = tf.random_normal_initializer(0., 0.02)
+        self.activation = Activation(activation)
+        if norm_layer == 'batch':
+            self.normalization = BatchNormalization()
+        elif norm_layer == 'instance':
+            self.normalization = InstanceNorm(affine=False)
+        else:
+            self.normalization = Lambda(lambda x: tf.identity(x))
+        self.conv2d = tf.keras.Sequential([
+            DepthwiseConv2D(
+                kernel_size=kernel_size,
+                strides=(1, 1),
+                padding=padding,
+                use_bias=use_bias),
+            self.normalization,
+            self.activation,
+            Conv2DTranspose(filters=filters,
+                            kernel_size=(1, 1),
+                            strides=(2, 2),
+                            padding=padding,
+                            kernel_initializer=initializer,
+                            use_bias=use_bias),
+            self.normalization,
+            self.activation,
+        ])
+
+    def call(self, inputs, training=None):
+        x = self.conv2d(inputs)
+        return x
+
+
+class ResBlockG(Layer):
+    """ ResBlock is a ConvBlock with skip connections.
+    Original Resnet paper (https://arxiv.org/pdf/1512.03385.pdf).
+    """
+
+    def __init__(self,
+                 filters,
+                 kernel_size,
+                 use_bias,
+                 norm_layer,
+                 activation='relu',
+                 ** kwargs):
+        super(ResBlockG, self).__init__(**kwargs)
+        initializer = tf.random_normal_initializer(0., 0.02)
+        self.activation = Activation(activation)
+        if norm_layer == 'batch':
+            self.normalization = BatchNormalization()
+        elif norm_layer == 'instance':
+            self.normalization = InstanceNorm(affine=False)
+        else:
+            self.normalization = Lambda(lambda x: tf.identity(x))
+
+        self.conv_block1 = Conv2D(filters=filters,
+                                  kernel_size=(1, 1),
+                                  strides=(1, 1),
+                                  padding='valid',
+                                  kernel_initializer=initializer,
+                                  use_bias=use_bias)
+        self.reflect_pad = Padding2D(1, pad_type='reflect')
+        self.conv_block2 = DepthwiseConv2D(
+            kernel_size=kernel_size,
+            strides=(1, 1),
+            padding='valid',
+            use_bias=use_bias)
+        self.conv_block3 = Conv2D(filters=filters,
+                                  kernel_size=(1, 1),
+                                  strides=(1, 1),
+                                  padding='valid',
+                                  kernel_initializer=initializer,
+                                  use_bias=use_bias)
+
+    def call(self, inputs, training=None):
+        x = self.conv_block1(inputs)
+        x = self.reflect_pad(x)
+        x = self.conv_block2(x)
+        x = self.conv_block3(x)
+        return inputs + x
+
+
 class Padding2D(Layer):
     """ 2D padding layer.
-    Args:
-        padding(tuple): Amount of padding for the
-        spatial dimensions.
-    Returns:
-        A padded tensor with the same type as the input tensor.
     """
 
     def __init__(self, padding=(1, 1), pad_type='constant', **kwargs):
@@ -50,7 +184,7 @@ class InstanceNorm(tf.keras.layers.Layer):
     """ Instance Normalization layer (https://arxiv.org/abs/1607.08022).
     """
 
-    def __init__(self, epsilon=1e-5, affine=True, **kwargs):
+    def __init__(self, epsilon=1e-5, affine=False, **kwargs):
         super(InstanceNorm, self).__init__(**kwargs)
         self.epsilon = epsilon
         self.affine = affine
@@ -66,35 +200,19 @@ class InstanceNorm(tf.keras.layers.Layer):
                                         shape=(input_shape[-1],),
                                         initializer=tf.zeros_initializer(),
                                         trainable=True)
-        else:
-            self.gamma = tf.ones_like(input_shape[-1], dtype=tf.float32)
-            self.beta = tf.zeros_like(input_shape[-1], dtype=tf.float32)
 
     def call(self, inputs, training=None):
         mean, var = tf.nn.moments(inputs, axes=[1, 2], keepdims=True)
         x = tf.divide(tf.subtract(inputs, mean),
                       tf.math.sqrt(tf.add(var, self.epsilon)))
 
-        return self.gamma * x + self.beta
-
-
-class L2Normalize(Layer):
-    """ L2 Normalization layer.
-    """
-
-    def __init__(self, epsilon=1e-10, **kwargs):
-        super(L2Normalize, self).__init__(**kwargs)
-        self.epsilon = epsilon
-
-    def call(self, inputs, training=None):
-        norm_factor = tf.math.sqrt(tf.reduce_sum(
-            inputs**2, axis=1, keepdims=True))
-
-        return inputs / (norm_factor + self.epsilon)
+        if self.affine:
+            return self.gamma * x + self.beta
+        return x
 
 
 class AntialiasSampling(tf.keras.layers.Layer):
-    """ Down/Up sampling layer with anti-alias.
+    """ Down/Up sampling layer with blur-kernel.
     """
 
     def __init__(self,
@@ -134,7 +252,7 @@ class AntialiasSampling(tf.keras.layers.Layer):
 
 
 class ConvBlock(Layer):
-    """ ConBlock layer that consists of Conv2D + Normalization + Activation.
+    """ ConBlock layer consists of Conv2D + Normalization + Activation.
     """
 
     def __init__(self,
@@ -145,44 +263,65 @@ class ConvBlock(Layer):
                  use_bias=True,
                  norm_layer=None,
                  activation='linear',
-                 downsample=False,
-                 upsample=False,
                  **kwargs):
         super(ConvBlock, self).__init__(**kwargs)
         initializer = tf.random_normal_initializer(0., 0.02)
-        if upsample:
-            self.conv2d = Conv2DTranspose(filters,
-                                          kernel_size,
-                                          (2, 2),
-                                          padding,
-                                          use_bias=use_bias,
-                                          kernel_initializer=initializer)
-        else:
-            self.conv2d = Conv2D(filters,
-                                 kernel_size,
-                                 strides,
-                                 padding,
-                                 use_bias=use_bias,
-                                 kernel_initializer=initializer)
+        self.conv2d = Conv2D(filters,
+                             kernel_size,
+                             strides,
+                             padding,
+                             use_bias=use_bias,
+                             kernel_initializer=initializer)
         self.activation = Activation(activation)
-        if downsample:
-            self.downsample = AveragePooling2D((2, 2))
-        else:
-            self.downsample = None
         if norm_layer == 'batch':
             self.normalization = BatchNormalization()
         elif norm_layer == 'instance':
             self.normalization = InstanceNorm(affine=False)
         else:
-            self.normalization = Lambda(lambda x: tf.identity(x))
+            self.normalization = tf.identity
 
     def call(self, inputs, training=None):
-        x = inputs
-        x = self.conv2d(x)
+        x = self.conv2d(inputs)
         x = self.normalization(x)
         x = self.activation(x)
-        if self.downsample is not None:
-            x = self.downsample(x)
+
+        return x
+
+
+class ConvTransposeBlock(Layer):
+    """ ConvTransposeBlock layer consists of Conv2DTranspose + Normalization + Activation.
+    """
+
+    def __init__(self,
+                 filters,
+                 kernel_size,
+                 strides=(1, 1),
+                 padding='valid',
+                 use_bias=True,
+                 norm_layer=None,
+                 activation='linear',
+                 **kwargs):
+        super(ConvTransposeBlock, self).__init__(**kwargs)
+        initializer = tf.random_normal_initializer(0., 0.02)
+        self.convT2d = Conv2DTranspose(filters,
+                                       kernel_size,
+                                       strides,
+                                       padding,
+                                       use_bias=use_bias,
+                                       kernel_initializer=initializer)
+        self.activation = Activation(activation)
+        if norm_layer == 'batch':
+            self.normalization = BatchNormalization()
+        elif norm_layer == 'instance':
+            self.normalization = InstanceNorm(affine=False)
+        else:
+            self.normalization = tf.identity
+
+    def call(self, inputs, training=None):
+        x = self.convT2d(inputs)
+        x = self.normalization(x)
+        x = self.activation(x)
+
         return x
 
 
@@ -222,3 +361,18 @@ class ResBlock(Layer):
         x = self.conv_block2(x)
 
         return inputs + x
+
+
+class L2Normalize(Layer):
+    """ L2 Normalization layer.
+    """
+
+    def __init__(self, epsilon=1e-10, **kwargs):
+        super(L2Normalize, self).__init__(**kwargs)
+        self.epsilon = epsilon
+
+    def call(self, inputs, training=None):
+        norm_factor = tf.math.sqrt(tf.reduce_sum(
+            inputs**2, axis=1, keepdims=True))
+
+        return inputs / (norm_factor + self.epsilon)

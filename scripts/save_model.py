@@ -49,7 +49,7 @@ def main(args):
     # Create model
     cut = CUT_model(source_shape, target_shape,
                     cut_mode=args.mode, impl=args.impl,
-                    model='unet', norm_layer='batch')
+                    model='resnet', norm_layer='batch')
     cut.summary()
     # Restored from previous checkpoints, or initialize checkpoints from scratch
     if args.ckpt:

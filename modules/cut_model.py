@@ -12,7 +12,7 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Dense
 from modules.layers import (
     ConvBlock, AntialiasSampling, ResBlock, Padding2D,
-    L2Normalize,Padding2D
+    L2Normalize, Padding2D, ResBlockG, ConvBlockG, ConvTransposeBlockG
 )
 from modules.losses import GANLoss, PatchNCELoss
 import unet
@@ -27,24 +27,24 @@ def Generator(input_shape, output_shape, norm_layer, resnet_blocks, impl, ngf=32
     use_bias = (norm_layer == 'instance')
 
     inputs = Input(shape=input_shape)
-    x = Padding2D(padding=(3, 3))(inputs)
-    x = ConvBlock(ngf, 7, padding='valid', use_bias=use_bias,
-                        norm_layer=norm_layer, activation='relu', downsample=False)(x)
-    x = ConvBlock(ngf*2, 3, padding='same', use_bias=use_bias,
-                        norm_layer=norm_layer, activation='relu', downsample=True)(x)
-    x = ConvBlock(ngf*4, 3, padding='same', use_bias=use_bias,
-                        norm_layer=norm_layer, activation='relu', downsample=True)(x)
+    x = Padding2D(3, pad_type='reflect')(inputs)
+    x = ConvBlockG(ngf, 7, padding='valid', use_bias=use_bias,
+                   norm_layer=norm_layer, activation='relu')(x)
+    x = ConvBlockG(ngf*2, 3, (2, 2), padding='same', use_bias=use_bias,
+                   norm_layer=norm_layer, activation='relu')(x)
+    x = ConvBlockG(ngf*4, 3, (2, 2), padding='same', use_bias=use_bias,
+                   norm_layer=norm_layer, activation='relu')(x)
 
     for _ in range(resnet_blocks):
-        x = ResBlock(ngf*4, 3, use_bias, norm_layer)(x)
+        x = ResBlockG(ngf*4, 3, use_bias, norm_layer)(x)
 
-    x = ConvBlock(ngf*2, 3, padding='same', use_bias=use_bias,
-                        norm_layer=norm_layer, activation='relu', upsample=True)(x)
-    x = ConvBlock(ngf, 3, padding='same', use_bias=use_bias,
-                        norm_layer=norm_layer, activation='relu', upsample=True)(x)
-    x = Padding2D(padding=(3, 3))(x)
-    outputs = ConvBlock(output_shape[-1], 7,
-                              padding='valid', activation='tanh', upsample=False)(x)
+    x = ConvTransposeBlockG(ngf*2, 3, padding='same', use_bias=use_bias,
+                            norm_layer=norm_layer, activation='relu')(x)
+    x = ConvTransposeBlockG(ngf, 3, padding='same', use_bias=use_bias,
+                            norm_layer=norm_layer, activation='relu')(x)
+    x = Padding2D(3, pad_type='reflect')(x)
+    outputs = ConvBlockG(output_shape[-1], 7,
+                         padding='valid', activation='tanh')(x)
 
     return Model(inputs=inputs, outputs=outputs, name='generator')
 
@@ -169,10 +169,10 @@ class CUT_model(Model):
         self.nce_layers = nce_layers
         if model == 'resnet':
             self.netG = Generator(source_shape, target_shape,
-                                  norm_layer, resnet_blocks=4, ngf=24, impl=impl)
+                                  norm_layer, resnet_blocks=4, ngf=32, impl=impl)
         elif model == 'unet':
             self.netG = unet.build_model(*source_shape, layer_depth=5)
-        self.netD = Discriminator(target_shape, norm_layer, impl=impl, ngf=24)
+        self.netD = Discriminator(target_shape, norm_layer, impl=impl, ngf=32)
         self.netE = Encoder(self.netG, self.nce_layers)
         self.netF = PatchSampleMLP(netF_units, netF_num_patches)
 
@@ -246,7 +246,7 @@ class CUT_model(Model):
         return {'D_loss': D_loss,
                 'G_loss': G_loss,
                 'NCE_loss': NCE_loss}
-    
+
     def summary(self):
         for model in [self.netG, self.netE, self.netD]:
             model.summary()
