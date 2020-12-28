@@ -32,6 +32,7 @@ class ConvBlockG(Layer):
                  activation='relu',
                  **kwargs):
         super(ConvBlockG, self).__init__(**kwargs)
+        initializer = tf.random_normal_initializer(0., 0.02)
         if norm_layer == 'batch':
             normalization = BatchNormalization()
         elif norm_layer == 'instance':
@@ -43,6 +44,7 @@ class ConvBlockG(Layer):
                 kernel_size=kernel_size,
                 strides=strides,
                 padding=padding,
+                depthwise_initializer=initializer,
                 use_bias=use_bias),
             normalization,
             Activation('relu'),
@@ -50,6 +52,7 @@ class ConvBlockG(Layer):
                    kernel_size=(1, 1),
                    strides=(1, 1),
                    padding=padding,
+                   kernel_initializer=initializer,
                    use_bias=use_bias),
             normalization,
             Activation(activation),
@@ -74,6 +77,7 @@ class ConvTransposeBlockG(Layer):
                  activation='linear',
                  **kwargs):
         super(ConvTransposeBlockG, self).__init__(**kwargs)
+        initializer = tf.random_normal_initializer(0., 0.02)
         self.activation = Activation(activation)
         if norm_layer == 'batch':
             normalization = BatchNormalization()
@@ -86,6 +90,7 @@ class ConvTransposeBlockG(Layer):
                 kernel_size=kernel_size,
                 strides=(1, 1),
                 padding=padding,
+                depthwise_initializer=initializer,
                 use_bias=use_bias),
             normalization,
             Activation('relu'),
@@ -93,6 +98,7 @@ class ConvTransposeBlockG(Layer):
                             kernel_size=(1, 1),
                             strides=(2, 2),
                             padding=padding,
+                            kernel_initializer=initializer,
                             use_bias=use_bias),
             normalization,
             Activation(activation),
@@ -117,6 +123,7 @@ class InverteResBlock(Layer):
                  t=6,
                  ** kwargs):
         super(InverteResBlock, self).__init__(**kwargs)
+        initializer = tf.random_normal_initializer(0., 0.02)
         if norm_layer == 'batch':
             normalization = BatchNormalization()
         elif norm_layer == 'instance':
@@ -129,6 +136,7 @@ class InverteResBlock(Layer):
                    kernel_size=(1, 1),
                    strides=(1, 1),
                    padding='valid',
+                   kernel_initializer=initializer,
                    use_bias=use_bias),
             normalization,
             Activation('relu'),
@@ -137,6 +145,7 @@ class InverteResBlock(Layer):
                 kernel_size=kernel_size,
                 strides=(1, 1),
                 padding='valid',
+                depthwise_initializer=initializer,
                 use_bias=use_bias),
             normalization,
             Activation('relu'),
@@ -144,8 +153,10 @@ class InverteResBlock(Layer):
                    kernel_size=(1, 1),
                    strides=(1, 1),
                    padding='valid',
+                   kernel_initializer=initializer,
                    use_bias=use_bias),
-            normalization])
+            normalization,
+            Activation('relu')])
 
     def call(self, inputs, training=None):
         x = self.net(inputs)
