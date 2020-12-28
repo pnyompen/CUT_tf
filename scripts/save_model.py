@@ -67,7 +67,7 @@ def main(args):
     tmp_dir.mkdir(parents=True, exist_ok=True)
     out_path = Path(args.out_path)
 
-    test_img_path = 'test/test3.jpg'
+    test_img_path = 'test/test.jpg'
     img = Image.open(test_img_path).resize((256, 256))
     img = (np.array(img) / 127.5) - 1.0
 
@@ -89,8 +89,8 @@ def main(args):
 
     # quantize
     # converter.optimizations = [tf.lite.Optimize.DEFAULT]
-    converter.target_spec.supported_ops = [
-        tf.lite.OpsSet.TFLITE_BUILTINS, tf.lite.OpsSet.SELECT_TF_OPS]
+    # converter.target_spec.supported_ops = [
+    #     tf.lite.OpsSet.TFLITE_BUILTINS, tf.lite.OpsSet.SELECT_TF_OPS]
     # converter.target_spec.supported_types = [tf.float16]
     # converter.optimizations = [tf.lite.Optimize.OPTIMIZE_FOR_SIZE]
     tflite_model = converter.convert()

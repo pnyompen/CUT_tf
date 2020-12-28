@@ -86,20 +86,20 @@ class ConvTransposeBlockG(Layer):
         else:
             normalization = Lambda(lambda x: tf.identity(x))
         self.net = tf.keras.Sequential([
-            DepthwiseConv2D(
-                kernel_size=kernel_size,
-                strides=(1, 1),
-                padding=padding,
-                depthwise_initializer=initializer,
-                use_bias=use_bias),
-            normalization,
-            Activation('relu'),
             Conv2DTranspose(filters=filters,
                             kernel_size=(1, 1),
                             strides=(2, 2),
                             padding=padding,
                             kernel_initializer=initializer,
                             use_bias=use_bias),
+            normalization,
+            Activation('relu'),
+            DepthwiseConv2D(
+                kernel_size=kernel_size,
+                strides=(1, 1),
+                padding=padding,
+                depthwise_initializer=initializer,
+                use_bias=use_bias),
             normalization,
             Activation(activation),
         ])
