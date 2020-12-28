@@ -12,7 +12,7 @@ import warnings
 
 from modules.cut_model import CUT_model
 from utils import create_dir, load_image
-warnings.simplefilter('ignore')
+warnings.filterwarnings('ignore')
 
 
 def ArgParse():
