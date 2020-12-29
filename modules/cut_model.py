@@ -24,7 +24,8 @@ def Generator(input_shape, output_shape, norm_layer, resnet_blocks, impl, ngf=32
     For BatchNorm, we use learnable affine parameters and track running statistics (mean/stddev).
     For InstanceNorm, we do not use learnable affine parameters. We do not track running statistics. 
     """
-    use_bias = (norm_layer == 'instance')
+    # use_bias = (norm_layer == 'instance')
+    use_bias = False
 
     inputs = Input(shape=input_shape)
     x = Padding2D(3, pad_type='reflect')(inputs)
