@@ -13,7 +13,8 @@ import numpy as np
 from tensorflow.keras.layers import (
     Layer, Conv2D, Activation, BatchNormalization,
     Lambda, Conv2DTranspose, AveragePooling2D,
-    UpSampling2D, Conv2DTranspose, DepthwiseConv2D
+    UpSampling2D, Conv2DTranspose, DepthwiseConv2D,
+    ReLU
 )
 from modules.ops.upfirdn_2d import upsample_2d, downsample_2d
 
@@ -139,7 +140,7 @@ class InverteResBlock(Layer):
                    kernel_initializer=initializer,
                    use_bias=use_bias),
             normalization,
-            Activation('relu'),
+            ReLU(max_value=6.0),
             Padding2D(1, pad_type='reflect'),
             DepthwiseConv2D(
                 kernel_size=kernel_size,
@@ -148,15 +149,14 @@ class InverteResBlock(Layer):
                 depthwise_initializer=initializer,
                 use_bias=use_bias),
             normalization,
-            Activation('relu'),
+            ReLU(max_value=6.0),
             Conv2D(filters=filters,
                    kernel_size=(1, 1),
                    strides=(1, 1),
                    padding='valid',
                    kernel_initializer=initializer,
                    use_bias=use_bias),
-            normalization,
-            Activation('relu')])
+            normalization])
 
     def call(self, inputs, training=None):
         x = self.net(inputs)
