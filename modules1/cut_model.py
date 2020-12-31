@@ -12,7 +12,7 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Dense
 from modules.layers import (
     ConvBlock, AntialiasSampling, ResBlock, Padding2D,
-    L2Normalize, Padding2D, InvertedResBlock, ConvDepthwiseBlock, ConvDepthwiseTransposeBlock
+    L2Normalize, Padding2D, InverteResBlock, ConvBlockG, ConvTransposeBlockG
 )
 from modules.losses import GANLoss, PatchNCELoss
 import unet
@@ -29,23 +29,23 @@ def Generator(input_shape, output_shape, norm_layer, resnet_blocks, impl, ngf=32
 
     inputs = Input(shape=input_shape)
     x = Padding2D(3, pad_type='reflect')(inputs)
-    x = ConvDepthwiseBlock(ngf, 7, padding='valid', use_bias=use_bias,
-                           norm_layer=norm_layer, activation='relu')(x)
-    x = ConvDepthwiseBlock(ngf*2, 3, (2, 2), padding='same', use_bias=use_bias,
-                           norm_layer=norm_layer, activation='relu')(x)
-    x = ConvDepthwiseBlock(ngf*4, 3, (2, 2), padding='same', use_bias=use_bias,
-                           norm_layer=norm_layer, activation='relu')(x)
+    x = ConvBlockG(ngf, 7, padding='valid', use_bias=use_bias,
+                   norm_layer=norm_layer, activation='relu')(x)
+    x = ConvBlockG(ngf*2, 3, (2, 2), padding='same', use_bias=use_bias,
+                   norm_layer=norm_layer, activation='relu')(x)
+    x = ConvBlockG(ngf*4, 3, (2, 2), padding='same', use_bias=use_bias,
+                   norm_layer=norm_layer, activation='relu')(x)
 
     for _ in range(resnet_blocks):
-        x = InvertedResBlock(ngf*4, 3, use_bias, norm_layer)(x)
+        x = InverteResBlock(ngf*4, 3, use_bias, norm_layer)(x)
 
-    x = ConvDepthwiseTransposeBlock(ngf*2, 3, padding='same', use_bias=use_bias,
-                                    norm_layer=norm_layer, activation='relu')(x)
-    x = ConvDepthwiseTransposeBlock(ngf, 3, padding='same', use_bias=use_bias,
-                                    norm_layer=norm_layer, activation='relu')(x)
+    x = ConvTransposeBlockG(ngf*2, 3, padding='same', use_bias=use_bias,
+                            norm_layer=norm_layer, activation='relu')(x)
+    x = ConvTransposeBlockG(ngf, 3, padding='same', use_bias=use_bias,
+                            norm_layer=norm_layer, activation='relu')(x)
     x = Padding2D(3, pad_type='reflect')(x)
-    outputs = ConvDepthwiseBlock(output_shape[-1], 7,
-                                 padding='valid', activation='tanh')(x)
+    outputs = ConvBlockG(output_shape[-1], 7,
+                         padding='valid', activation='tanh')(x)
 
     return Model(inputs=inputs, outputs=outputs, name='generator')
 

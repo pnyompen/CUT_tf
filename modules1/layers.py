@@ -18,6 +18,151 @@ from tensorflow.keras.layers import (
 )
 from modules.ops.upfirdn_2d import upsample_2d, downsample_2d
 
+
+class ConvBlockG(Layer):
+    """ ConBlock layer that consists of Conv2D + Normalization + Activation.
+    """
+
+    def __init__(self,
+                 filters,
+                 kernel_size,
+                 strides=(1, 1),
+                 padding='valid',
+                 use_bias=True,
+                 norm_layer=None,
+                 activation='relu',
+                 **kwargs):
+        super(ConvBlockG, self).__init__(**kwargs)
+        initializer = tf.random_normal_initializer(0., 0.02)
+        if norm_layer == 'batch':
+            normalization = BatchNormalization()
+        elif norm_layer == 'instance':
+            normalization = InstanceNorm(affine=False)
+        else:
+            normalization = Lambda(lambda x: tf.identity(x))
+        self.net = tf.keras.Sequential([
+            DepthwiseConv2D(
+                kernel_size=kernel_size,
+                strides=strides,
+                padding=padding,
+                depthwise_initializer=initializer,
+                use_bias=use_bias),
+            normalization,
+            Activation('relu'),
+            Conv2D(filters=filters,
+                   kernel_size=(1, 1),
+                   strides=(1, 1),
+                   padding=padding,
+                   kernel_initializer=initializer,
+                   use_bias=use_bias),
+            normalization,
+            Activation(activation),
+        ])
+
+    def call(self, inputs, training=None):
+        x = self.net(inputs)
+        return x
+
+
+class ConvTransposeBlockG(Layer):
+    """ ConvTransposeBlock layer consists of Conv2DTranspose + Normalization + Activation.
+    """
+
+    def __init__(self,
+                 filters,
+                 kernel_size,
+                 strides=(2, 2),
+                 padding='valid',
+                 use_bias=True,
+                 norm_layer=None,
+                 activation='linear',
+                 **kwargs):
+        super(ConvTransposeBlockG, self).__init__(**kwargs)
+        initializer = tf.random_normal_initializer(0., 0.02)
+        self.activation = Activation(activation)
+        if norm_layer == 'batch':
+            normalization = BatchNormalization()
+        elif norm_layer == 'instance':
+            normalization = InstanceNorm(affine=False)
+        else:
+            normalization = Lambda(lambda x: tf.identity(x))
+        self.net = tf.keras.Sequential([
+            Conv2DTranspose(filters=filters,
+                            kernel_size=(1, 1),
+                            strides=(2, 2),
+                            padding=padding,
+                            kernel_initializer=initializer,
+                            use_bias=use_bias),
+            normalization,
+            Activation('relu'),
+            DepthwiseConv2D(
+                kernel_size=kernel_size,
+                strides=(1, 1),
+                padding=padding,
+                depthwise_initializer=initializer,
+                use_bias=use_bias),
+            normalization,
+            Activation(activation),
+        ])
+
+    def call(self, inputs, training=None):
+        x = self.net(inputs)
+        return x
+
+
+class InverteResBlock(Layer):
+    """ ResBlock is a ConvBlock with skip connections.
+    Original Resnet paper (https://arxiv.org/pdf/1512.03385.pdf).
+    """
+
+    def __init__(self,
+                 filters,
+                 kernel_size,
+                 use_bias,
+                 norm_layer,
+                 activation='relu',
+                 t=6,
+                 ** kwargs):
+        super(InverteResBlock, self).__init__(**kwargs)
+        initializer = tf.random_normal_initializer(0., 0.02)
+        if norm_layer == 'batch':
+            normalization = BatchNormalization()
+        elif norm_layer == 'instance':
+            normalization = InstanceNorm(affine=False)
+        else:
+            normalization = Lambda(lambda x: tf.identity(x))
+
+        self.net = tf.keras.Sequential([
+            Conv2D(filters=filters * t,
+                   kernel_size=(1, 1),
+                   strides=(1, 1),
+                   padding='valid',
+                   kernel_initializer=initializer,
+                   use_bias=use_bias),
+            normalization,
+            ReLU(max_value=6.0),
+            Padding2D(1, pad_type='reflect'),
+            DepthwiseConv2D(
+                kernel_size=kernel_size,
+                strides=(1, 1),
+                padding='valid',
+                depthwise_initializer=initializer,
+                use_bias=use_bias),
+            normalization,
+            ReLU(max_value=6.0),
+            Conv2D(filters=filters,
+                   kernel_size=(1, 1),
+                   strides=(1, 1),
+                   padding='valid',
+                   kernel_initializer=initializer,
+                   use_bias=use_bias),
+            normalization])
+
+    def call(self, inputs, training=None):
+        x = self.net(inputs)
+        return inputs + x
+
+
 class Padding2D(Layer):
     """ 2D padding layer.
     """
@@ -237,155 +382,3 @@ class L2Normalize(Layer):
             inputs**2, axis=1, keepdims=True))
 
         return inputs / (norm_factor + self.epsilon)
-
-
-class ConvDepthwiseBlock(Layer):
-    """ ConBlock layer that consists of Conv2D + Normalization + Activation.
-    """
-
-    def __init__(self,
-                 filters,
-                 kernel_size,
-                 strides=(1, 1),
-                 padding='valid',
-                 use_bias=True,
-                 norm_layer=None,
-                 activation='relu',
-                 **kwargs):
-        super(ConvDepthwiseBlock, self).__init__(**kwargs)
-        initializer = tf.random_normal_initializer(0., 0.02)
-        if norm_layer == 'batch':
-            normalization = BatchNormalization()
-        elif norm_layer == 'instance':
-            normalization = InstanceNorm(affine=False)
-        else:
-            normalization = Lambda(lambda x: tf.identity(x))
-        if activation == 'relu':
-            activation_layer = ReLU(max_value=6.0)
-        else:
-            activation_layer = Activation(activation)
-        self.net = tf.keras.Sequential([
-            DepthwiseConv2D(
-                kernel_size=kernel_size,
-                strides=strides,
-                padding=padding,
-                depthwise_initializer=initializer,
-                use_bias=use_bias),
-            normalization,
-            ReLU(max_value=6.0),
-            Conv2D(filters=filters,
-                   kernel_size=(1, 1),
-                   strides=(1, 1),
-                   padding=padding,
-                   kernel_initializer=initializer,
-                   use_bias=use_bias),
-            normalization,
-            activation_layer,
-        ])
-
-    def call(self, inputs, training=None):
-        x = self.net(inputs)
-        return x
-
-
-class ConvDepthwiseTransposeBlock(Layer):
-    """ ConvTransposeBlock layer consists of Conv2DTranspose + Normalization + Activation.
-    """
-
-    def __init__(self,
-                 filters,
-                 kernel_size,
-                 strides=(2, 2),
-                 padding='valid',
-                 use_bias=True,
-                 norm_layer=None,
-                 activation='linear',
-                 **kwargs):
-        super(ConvDepthwiseTransposeBlock, self).__init__(**kwargs)
-        initializer = tf.random_normal_initializer(0., 0.02)
-        self.activation = Activation(activation)
-        if norm_layer == 'batch':
-            normalization = BatchNormalization()
-        elif norm_layer == 'instance':
-            normalization = InstanceNorm(affine=False)
-        else:
-            normalization = Lambda(lambda x: tf.identity(x))
-        if activation == 'relu':
-            activation_layer = ReLU(max_value=6.0)
-        else:
-            activation_layer = Activation(activation)
-        self.net = tf.keras.Sequential([
-            Conv2DTranspose(filters=filters,
-                            kernel_size=(1, 1),
-                            strides=(2, 2),
-                            padding=padding,
-                            kernel_initializer=initializer,
-                            use_bias=use_bias),
-            normalization,
-            ReLU(max_value=6.0),
-            DepthwiseConv2D(
-                kernel_size=kernel_size,
-                strides=(1, 1),
-                padding=padding,
-                depthwise_initializer=initializer,
-                use_bias=use_bias),
-            normalization,
-            activation_layer,
-        ])
-
-    def call(self, inputs, training=None):
-        x = self.net(inputs)
-        return x
-
-
-class InvertedResBlock(Layer):
-    """ ResBlock is a ConvBlock with skip connections.
-    Original Resnet paper (https://arxiv.org/pdf/1512.03385.pdf).
-    """
-
-    def __init__(self,
-                 filters,
-                 kernel_size,
-                 use_bias,
-                 norm_layer,
-                 activation='relu',
-                 expand_ratio=6,
-                 ** kwargs):
-        super(InvertedResBlock, self).__init__(**kwargs)
-        initializer = tf.random_normal_initializer(0., 0.02)
-        if norm_layer == 'batch':
-            normalization = BatchNormalization()
-        elif norm_layer == 'instance':
-            normalization = InstanceNorm(affine=False)
-        else:
-            normalization = Lambda(lambda x: tf.identity(x))
-
-        self.net = tf.keras.Sequential([
-            Conv2D(filters=filters * expand_ratio,
-                   kernel_size=(1, 1),
-                   strides=(1, 1),
-                   padding='valid',
-                   kernel_initializer=initializer,
-                   use_bias=use_bias),
-            normalization,
-            ReLU(max_value=6.0),
-            Padding2D(1, pad_type='reflect'),
-            DepthwiseConv2D(
-                kernel_size=kernel_size,
-                strides=(1, 1),
-                padding='valid',
-                depthwise_initializer=initializer,
-                use_bias=use_bias),
-            normalization,
-            ReLU(max_value=6.0),
-            Conv2D(filters=filters,
-                   kernel_size=(1, 1),
-                   strides=(1, 1),
-                   padding='valid',
-                   kernel_initializer=initializer,
-                   use_bias=use_bias),
-            normalization])
-
-    def call(self, inputs, training=None):
-        x = self.net(inputs)
-        return inputs + x
