@@ -389,3 +389,40 @@ class InvertedResBlock(Layer):
     def call(self, inputs, training=None):
         x = self.net(inputs)
         return inputs + x
+
+
+class ConvTransposeBlock(Layer):
+    """ ConvTransposeBlock layer consists of Conv2DTranspose + Normalization + Activation.
+    """
+
+    def __init__(self,
+                 filters,
+                 kernel_size,
+                 strides=(1, 1),
+                 padding='valid',
+                 use_bias=True,
+                 norm_layer=None,
+                 activation='linear',
+                 **kwargs):
+        super(ConvTransposeBlock, self).__init__(**kwargs)
+        initializer = tf.random_normal_initializer(0., 0.02)
+        self.convT2d = Conv2DTranspose(filters,
+                                       kernel_size,
+                                       strides,
+                                       padding,
+                                       use_bias=use_bias,
+                                       kernel_initializer=initializer)
+        self.activation = Activation(activation)
+        if norm_layer == 'batch':
+            self.normalization = BatchNormalization()
+        elif norm_layer == 'instance':
+            self.normalization = InstanceNorm(affine=False)
+        else:
+            self.normalization = tf.identity
+
+    def call(self, inputs, training=None):
+        x = self.convT2d(inputs)
+        x = self.normalization(x)
+        x = self.activation(x)
+
+        return x

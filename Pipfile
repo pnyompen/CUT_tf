@@ -13,3 +13,20 @@ autopep8 = "*"
 
 [requires]
 python_version = "3.8"
+
+[scripts]
+build_waterpaint = '''
+    python scripts/save_model.py
+    --out_path='/Volumes/T5/Workspace/neural_camera/assets/waterpaint.tflite'
+    --ckpt ckpts/waterpaint
+'''
+build_flower = '''
+    python scripts/save_model.py
+    --out_path='/Volumes/T5/Workspace/neural_camera/assets/flower.tflite'
+    --ckpt ckpts/flower
+'''
+build_xray = '''
+    python scripts/save_model.py
+    --out_path='/Volumes/T5/Workspace/neural_camera/assets/xray.tflite'
+    --ckpt ckpts/xray
+'''

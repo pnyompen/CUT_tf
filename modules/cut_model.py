@@ -12,7 +12,8 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Dense
 from modules.layers import (
     ConvBlock, AntialiasSampling, ResBlock, Padding2D,
-    L2Normalize, Padding2D, InvertedResBlock, ConvDepthwiseBlock, ConvDepthwiseTransposeBlock
+    L2Normalize, Padding2D, InvertedResBlock, ConvDepthwiseBlock,
+    ConvDepthwiseTransposeBlock, ConvTransposeBlock
 )
 from modules.losses import GANLoss, PatchNCELoss
 import unet
@@ -39,10 +40,10 @@ def Generator(input_shape, output_shape, norm_layer, resnet_blocks, impl, ngf=32
     for _ in range(resnet_blocks):
         x = InvertedResBlock(ngf*4, 3, use_bias, norm_layer)(x)
 
-    x = ConvDepthwiseTransposeBlock(ngf*2, 3, padding='same', use_bias=use_bias,
-                                    norm_layer=norm_layer, activation='relu')(x)
-    x = ConvDepthwiseTransposeBlock(ngf, 3, padding='same', use_bias=use_bias,
-                                    norm_layer=norm_layer, activation='relu')(x)
+    x = ConvTransposeBlock(ngf*2, 3, padding='same', use_bias=use_bias,
+                           norm_layer=norm_layer, activation='relu')(x)
+    x = ConvTransposeBlock(ngf, 3, padding='same', use_bias=use_bias,
+                           norm_layer=norm_layer, activation='relu')(x)
     x = Padding2D(3, pad_type='reflect')(x)
     outputs = ConvDepthwiseBlock(output_shape[-1], 7,
                                  padding='valid', activation='tanh')(x)
