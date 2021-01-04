@@ -21,8 +21,6 @@ def ArgParse():
                         type=str, default='cut', choices=['cut', 'fastcut'])
     parser.add_argument('--gan_mode', help='The type of GAN objective.',
                         type=str, default='lsgan', choices=['lsgan', 'nonsaturating'])
-    parser.add_argument('--model', help='The type of GAN objective.',
-                        type=str, default='resnet', choices=['resnet', 'unet'])
     parser.add_argument(
         '--epochs', help='Number of training epochs', type=int, default=400)
     parser.add_argument(
@@ -92,7 +90,7 @@ def main(args):
 
     # Create model
     cut = CUT_model(source_shape, target_shape,
-                    cut_mode=args.mode, impl=args.impl, model=args.model, norm_layer='instance')
+                    cut_mode=args.mode, impl=args.impl, norm_layer='instance', use_antialias=False)
     cut.summary()
     # Define learning rate schedule
     lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(initial_learning_rate=args.lr,

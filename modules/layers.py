@@ -9,11 +9,11 @@ ResBlock
 
 import tensorflow as tf
 import numpy as np
+import copy
 
 from tensorflow.keras.layers import (
     Layer, Conv2D, Activation, BatchNormalization,
-    Lambda, Conv2DTranspose, AveragePooling2D,
-    UpSampling2D, Conv2DTranspose, DepthwiseConv2D,
+    Lambda, Conv2DTranspose, Conv2DTranspose, DepthwiseConv2D,
     ReLU
 )
 from modules.ops.upfirdn_2d import upsample_2d, downsample_2d
@@ -137,7 +137,7 @@ class ConvBlock(Layer):
         if norm_layer == 'batch':
             self.normalization = BatchNormalization()
         elif norm_layer == 'instance':
-            self.normalization = InstanceNorm(affine=False)
+            self.normalization = InstanceNorm(affine=~use_bias)
         else:
             self.normalization = tf.identity
 
@@ -174,7 +174,7 @@ class ConvTransposeBlock(Layer):
         if norm_layer == 'batch':
             self.normalization = BatchNormalization()
         elif norm_layer == 'instance':
-            self.normalization = InstanceNorm(affine=False)
+            self.normalization = InstanceNorm(affine=~use_bias)
         else:
             self.normalization = tf.identity
 
@@ -224,21 +224,6 @@ class ResBlock(Layer):
         return inputs + x
 
 
-class L2Normalize(Layer):
-    """ L2 Normalization layer.
-    """
-
-    def __init__(self, epsilon=1e-10, **kwargs):
-        super(L2Normalize, self).__init__(**kwargs)
-        self.epsilon = epsilon
-
-    def call(self, inputs, training=None):
-        norm_factor = tf.math.sqrt(tf.reduce_sum(
-            inputs**2, axis=1, keepdims=True))
-
-        return inputs / (norm_factor + self.epsilon)
-
-
 class ConvDepthwiseBlock(Layer):
     """ ConBlock layer that consists of Conv2D + Normalization + Activation.
     """
@@ -254,12 +239,14 @@ class ConvDepthwiseBlock(Layer):
                  **kwargs):
         super(ConvDepthwiseBlock, self).__init__(**kwargs)
         initializer = tf.random_normal_initializer(0., 0.02)
-        if norm_layer == 'batch':
-            normalization = BatchNormalization()
-        elif norm_layer == 'instance':
-            normalization = InstanceNorm(affine=False)
-        else:
-            normalization = Lambda(lambda x: tf.identity(x))
+
+        def normalization(norm_layer):
+            if norm_layer == 'batch':
+                return BatchNormalization()
+            elif norm_layer == 'instance':
+                return InstanceNorm(affine=~use_bias)
+            else:
+                return Lambda(lambda x: tf.identity(x))
         if activation == 'relu':
             activation_layer = ReLU(max_value=6.0)
         else:
@@ -271,7 +258,7 @@ class ConvDepthwiseBlock(Layer):
                 padding=padding,
                 depthwise_initializer=initializer,
                 use_bias=use_bias),
-            normalization,
+            normalization(norm_layer),
             ReLU(max_value=6.0),
             Conv2D(filters=filters,
                    kernel_size=(1, 1),
@@ -279,7 +266,7 @@ class ConvDepthwiseBlock(Layer):
                    padding=padding,
                    kernel_initializer=initializer,
                    use_bias=use_bias),
-            normalization,
+            normalization(norm_layer),
             activation_layer,
         ])
 
@@ -307,7 +294,7 @@ class ConvDepthwiseTransposeBlock(Layer):
         if norm_layer == 'batch':
             normalization = BatchNormalization()
         elif norm_layer == 'instance':
-            normalization = InstanceNorm(affine=False)
+            normalization = InstanceNorm(affine=~use_bias)
         else:
             normalization = Lambda(lambda x: tf.identity(x))
         if activation == 'relu':
@@ -353,12 +340,18 @@ class InvertedResBlock(Layer):
                  ** kwargs):
         super(InvertedResBlock, self).__init__(**kwargs)
         initializer = tf.random_normal_initializer(0., 0.02)
-        if norm_layer == 'batch':
-            normalization = BatchNormalization()
-        elif norm_layer == 'instance':
-            normalization = InstanceNorm(affine=False)
+
+        def normalization(norm_layer):
+            if norm_layer == 'batch':
+                return BatchNormalization()
+            elif norm_layer == 'instance':
+                return InstanceNorm(affine=~use_bias)
+            else:
+                return Lambda(lambda x: tf.identity(x))
+        if activation == 'relu':
+            activation_layer = ReLU(max_value=6.0)
         else:
-            normalization = Lambda(lambda x: tf.identity(x))
+            activation_layer = Activation(activation)
 
         self.net = tf.keras.Sequential([
             Conv2D(filters=filters * expand_ratio,
@@ -367,7 +360,7 @@ class InvertedResBlock(Layer):
                    padding='valid',
                    kernel_initializer=initializer,
                    use_bias=use_bias),
-            normalization,
+            normalization(norm_layer),
             ReLU(max_value=6.0),
             Padding2D(1, pad_type='reflect'),
             DepthwiseConv2D(
@@ -376,7 +369,7 @@ class InvertedResBlock(Layer):
                 padding='valid',
                 depthwise_initializer=initializer,
                 use_bias=use_bias),
-            normalization,
+            normalization(norm_layer),
             ReLU(max_value=6.0),
             Conv2D(filters=filters,
                    kernel_size=(1, 1),
@@ -384,45 +377,10 @@ class InvertedResBlock(Layer):
                    padding='valid',
                    kernel_initializer=initializer,
                    use_bias=use_bias),
-            normalization])
+            normalization(norm_layer),
+            activation_layer])
 
     def call(self, inputs, training=None):
         x = self.net(inputs)
         return inputs + x
 
-
-class ConvTransposeBlock(Layer):
-    """ ConvTransposeBlock layer consists of Conv2DTranspose + Normalization + Activation.
-    """
-
-    def __init__(self,
-                 filters,
-                 kernel_size,
-                 strides=(1, 1),
-                 padding='valid',
-                 use_bias=True,
-                 norm_layer=None,
-                 activation='linear',
-                 **kwargs):
-        super(ConvTransposeBlock, self).__init__(**kwargs)
-        initializer = tf.random_normal_initializer(0., 0.02)
-        self.convT2d = Conv2DTranspose(filters,
-                                       kernel_size,
-                                       strides,
-                                       padding,
-                                       use_bias=use_bias,
-                                       kernel_initializer=initializer)
-        self.activation = Activation(activation)
-        if norm_layer == 'batch':
-            self.normalization = BatchNormalization()
-        elif norm_layer == 'instance':
-            self.normalization = InstanceNorm(affine=False)
-        else:
-            self.normalization = tf.identity
-
-    def call(self, inputs, training=None):
-        x = self.convT2d(inputs)
-        x = self.normalization(x)
-        x = self.activation(x)
-
-        return x
