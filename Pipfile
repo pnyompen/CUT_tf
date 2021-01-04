@@ -17,7 +17,7 @@ python_version = "3.8"
 [scripts]
 build_waterpaint = '''
     python scripts/save_model.py
-    --out_path='/Volumes/T5/Workspace/neural_camera/assets/waterpaint.tflite'
+    --out_path='/Volumes/T5/Workspace/neural_camera/assets/waterpaint2.tflite'
     --ckpt ckpts/waterpaint
 '''
 build_flower = '''
@@ -29,4 +29,8 @@ build_xray = '''
     python scripts/save_model.py
     --out_path='/Volumes/T5/Workspace/neural_camera/assets/xray.tflite'
     --ckpt ckpts/xray
+'''
+build_test = '''
+    python scripts/save_model.py
+    --out_path='/Volumes/T5/Workspace/neural_camera/assets/test.tflite'
 '''
