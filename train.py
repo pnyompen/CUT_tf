@@ -59,6 +59,8 @@ def ArgParse():
     parser.add_argument('--crop_size', type=int, default=256)
     parser.add_argument('--load_size', type=int, default=256)
     parser.add_argument('--src_data_augmentation', action='store_true')
+    parser.add_argument('--ngf', type=int, default=64)
+    parser.add_argument('--ndf', type=int, default=64)
 
     args = parser.parse_args()
 
@@ -90,7 +92,8 @@ def main(args):
 
     # Create model
     cut = CUT_model(source_shape, target_shape,
-                    cut_mode=args.mode, impl=args.impl, norm_layer='instance', use_antialias=False)
+                    cut_mode=args.mode, impl=args.impl, norm_layer='instance',
+                    use_antialias=False, ndf=args.ndf, ngf=args.ngf)
     cut.summary()
     # Define learning rate schedule
     lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(initial_learning_rate=args.lr,
