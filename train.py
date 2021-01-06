@@ -82,8 +82,17 @@ def ArgParse():
 
 
 def main(args):
-    # Create datasets
-    train_dataset, test_dataset = create_dataset(args)
+
+    physical_devices = tf.config.list_physical_devices('GPU')
+    if len(physical_devices) > 0:
+        for device in physical_devices:
+            tf.config.experimental.set_memory_growth(device, True)
+            print('{} memory growth: {}'.format(
+                device, tf.config.experimental.get_memory_growth(device)))
+    else:
+        print("Not enough GPU hardware devices available")
+        # Create datasets
+        train_dataset, test_dataset = create_dataset(args)
 
     # Get image shape
     source_image, target_image = next(iter(train_dataset))
