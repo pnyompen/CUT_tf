@@ -92,7 +92,7 @@ def main(args):
     else:
         print("Not enough GPU hardware devices available")
         # Create datasets
-        train_dataset, test_dataset = create_dataset(args)
+    train_dataset, test_dataset = create_dataset(args)
 
     # Get image shape
     source_image, target_image = next(iter(train_dataset))
