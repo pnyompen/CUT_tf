@@ -105,8 +105,8 @@ def main(args):
                     cut_mode=args.mode, impl=args.impl, norm_layer='instance',
                     use_antialias=args.use_antialias, ndf=args.ndf, ngf=args.ngf,
                     resnet_blocks=4,
-                    netF_units=128,
-                    netF_num_patches=128,
+                    netF_units=256,
+                    netF_num_patches=256,
                     nce_layers=[0, 2, 4, 6, 8],)
     cut.summary()
     # Define learning rate schedule
