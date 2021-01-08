@@ -34,3 +34,8 @@ build_test = '''
     python scripts/save_model.py
     --out_path='/Volumes/T5/Workspace/neural_camera/assets/test.tflite'
 '''
+build_custom = '''
+    python scripts/save_model.py
+    --out_path='/Volumes/T5/Workspace/neural_camera/assets/waterpaint6.tflite'
+    --ckpt ckpts/waterpaint6
+'''
