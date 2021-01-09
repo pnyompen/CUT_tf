@@ -60,6 +60,7 @@ def ArgParse():
     parser.add_argument('--load_size', type=int, default=256)
     parser.add_argument('--src_data_augmentation', action='store_true')
     parser.add_argument('--use_antialias', action='store_true')
+    parser.add_argument('--memory_growth', action='store_true')
     parser.add_argument('--ngf', type=int, default=64)
     parser.add_argument('--ndf', type=int, default=64)
 
@@ -85,7 +86,7 @@ def ArgParse():
 def main(args):
 
     physical_devices = tf.config.list_physical_devices('GPU')
-    if len(physical_devices) > 0:
+    if len(physical_devices) > 0 and args.memory_growth:
         for device in physical_devices:
             tf.config.experimental.set_memory_growth(device, True)
             print('{} memory growth: {}'.format(
