@@ -156,7 +156,7 @@ def main(args):
             callbacks=[plotter_callback,
                        checkpoint_callback, tensorboard_callback],
             workers=args.n_workers,
-            steps_per_epoch=args.steps_per_epoch
+            steps_per_epoch=args.steps_per_epoch,
             verbose=1)
 
 
