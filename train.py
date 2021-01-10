@@ -58,6 +58,8 @@ def ArgParse():
                         choices=['none', 'crop', 'scale_shortside_and_crop'])
     parser.add_argument('--crop_size', type=int, default=256)
     parser.add_argument('--load_size', type=int, default=256)
+    parser.add_argument('--steps_per_epoch', type=int, default=None)
+    parser.add_argument('--n_workers', type=int, default=24)
     parser.add_argument('--src_data_augmentation', action='store_true')
     parser.add_argument('--use_antialias', action='store_true')
     parser.add_argument('--memory_growth', action='store_true')
@@ -153,6 +155,8 @@ def main(args):
             initial_epoch=initial_epoch,
             callbacks=[plotter_callback,
                        checkpoint_callback, tensorboard_callback],
+            workers=args.n_workers,
+            steps_per_epoch=args.steps_per_epoch
             verbose=1)
 
 
