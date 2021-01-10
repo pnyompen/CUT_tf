@@ -42,6 +42,8 @@ def ArgParse():
                         type=str, default='./datasets/horse2zebra/trainA')
     parser.add_argument('--train_tar_dir', help='Train-target dataset folder',
                         type=str, default='./datasets/horse2zebra/trainB')
+    parser.add_argument('--train_tar_pattern', help='Train-target dataset folder',
+                        type=str, default='*')
     parser.add_argument('--test_src_dir', help='Test-source dataset folder',
                         type=str, default='./datasets/horse2zebra/testA')
     parser.add_argument('--test_tar_dir', help='Test-target dataset folder',
@@ -174,7 +176,10 @@ def create_dataset(args):
     )
 
     train_tar_dataset = tf.data.Dataset.list_files(
-        [args.train_tar_dir+'/*.jpg', args.train_tar_dir+'/*.jpeg', args.train_tar_dir+'/*.png'], shuffle=True)
+        [
+            args.train_tar_dir+f'/{args.train_tar_pattern}.jpg',
+            args.train_tar_dir+f'/{args.train_tar_pattern}.jpeg',
+            args.train_tar_dir+f'/{args.train_tar_pattern}.png'], shuffle=True)
     train_tar_dataset = (
         train_tar_dataset.map(lambda x: load_image(x, crop_size=args.crop_size, load_size=args.load_size,
                                                    preprocess=args.preprocess), num_parallel_calls=tf.data.experimental.AUTOTUNE)
