@@ -49,7 +49,7 @@ def main(args):
     # Create model
     cut = CUT_model(source_shape, target_shape,
                     cut_mode=args.mode, impl=args.impl,
-                    norm_layer='instance', ngf=32, ndf=32,
+                    norm_layer='instance', ngf=16, ndf=32,
                     resnet_blocks=4,
                     netF_units=256,
                     netF_num_patches=256,

@@ -44,7 +44,7 @@ def Generator(input_shape, output_shape, norm_layer, resnet_blocks, impl, ngf=64
     x = ConvTransposeBlock(ngf, 3, (2, 2), padding='same', use_bias=use_bias,
                            norm_layer=norm_layer, activation='relu')(x)
     x = Padding2D(3, pad_type='reflect')(x)
-    outputs = ConvDepthwiseBlock(output_shape[-1], 7,
+    outputs = ConvBlock(output_shape[-1], 7,
                                  padding='valid', activation='tanh')(x)
 
     return Model(inputs=inputs, outputs=outputs, name='generator')
