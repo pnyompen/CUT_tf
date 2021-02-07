@@ -5,5 +5,7 @@ python train.py --mode cut                                    \
                 --train_tar_dir "$dataroot/trainB" \
                 --test_src_dir "$dataroot/trainA"   \
                 --test_tar_dir "$dataroot/trainB"   \
+                --gan_mode "hindge" \
+                --use_diffaugment \
                 --load_size 256 --crop_size 256 \
                 --preprocess scale_shortside_and_crop

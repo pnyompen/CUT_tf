@@ -35,6 +35,13 @@ class GANLoss:
                 loss = tf.reduce_mean(-prediction)
             else:
                 loss = tf.reduce_mean(prediction)
+        elif self.gan_mode == 'hinge':
+            if target_is_real:
+                minval = tf.min(input - 1, tf.zeros_like(input))
+                loss = -tf.reduce_mean(minval)
+            else:
+                minval = tf.min(-input - 1, tf.zeros_like(input))
+                loss = -tf.reduce_mean(minval)
         return loss
 
 

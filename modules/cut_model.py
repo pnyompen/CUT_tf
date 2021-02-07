@@ -16,6 +16,7 @@ from modules.layers import (
     ConvDepthwiseTransposeBlock, ConvTransposeBlock
 )
 from modules.losses import GANLoss, PatchNCELoss
+from modules.diffaugment import DiffAugment, get_params
 
 
 def Generator(input_shape, output_shape, norm_layer, resnet_blocks, impl, ngf=64):
@@ -45,7 +46,7 @@ def Generator(input_shape, output_shape, norm_layer, resnet_blocks, impl, ngf=64
                            norm_layer=norm_layer, activation='relu')(x)
     x = Padding2D(3, pad_type='reflect')(x)
     outputs = ConvBlock(output_shape[-1], 7,
-                                 padding='valid', activation='tanh')(x)
+                        padding='valid', activation='tanh')(x)
 
     return Model(inputs=inputs, outputs=outputs, name='generator')
 
@@ -171,9 +172,11 @@ class CUT_model(Model):
                  impl='ref',
                  ngf=64,
                  ndf=64,
+                 use_diffaugment=False,
+                 diff_augment_policy='color,translation,cutout',
                  **kwargs):
         assert cut_mode in ['cut', 'fastcut']
-        assert gan_mode in ['lsgan', 'nonsaturating']
+        assert gan_mode in ['lsgan', 'nonsaturating', 'hindge']
         assert norm_layer in [None, 'batch', 'instance']
         assert netF_units > 0
         assert netF_num_patches > 0
@@ -198,6 +201,8 @@ class CUT_model(Model):
             self.use_nce_identity = False
         else:
             raise ValueError(cut_mode)
+        self.use_diffaugment = use_diffaugment
+        self.diff_augment_policy = diff_augment_policy
 
     def compile(self,
                 G_optimizer,
@@ -223,6 +228,19 @@ class CUT_model(Model):
             fake_B = fake[:real_A.shape[0]]
             if self.use_nce_identity:
                 idt_B = fake[real_A.shape[0]:]
+            NCE_loss = self.nce_loss_func(real_A, fake_B, self.netE, self.netF)
+            if self.use_nce_identity:
+                NCE_B_loss = self.nce_loss_func(
+                    real_B, idt_B, self.netE, self.netF)
+                NCE_loss = (NCE_loss + NCE_B_loss) * 0.5
+
+            if self.use_diffaugment:
+                params = get_params(
+                    fake_B, policy=self.diff_augment_policy)
+                fake_B = DiffAugment(
+                    fake_B, policy=self.diff_augment_policy, params=params)
+                real_B = DiffAugment(
+                    real_B, policy=self.diff_augment_policy, params=params)
 
             """Calculate GAN loss for the discriminator"""
             fake_score = self.netD(fake_B, training=True)
@@ -235,12 +253,6 @@ class CUT_model(Model):
 
             """Calculate GAN loss and NCE loss for the generator"""
             G_loss = tf.reduce_mean(self.gan_loss_func(fake_score, True))
-            NCE_loss = self.nce_loss_func(real_A, fake_B, self.netE, self.netF)
-
-            if self.use_nce_identity:
-                NCE_B_loss = self.nce_loss_func(
-                    real_B, idt_B, self.netE, self.netF)
-                NCE_loss = (NCE_loss + NCE_B_loss) * 0.5
 
             G_loss += NCE_loss
 

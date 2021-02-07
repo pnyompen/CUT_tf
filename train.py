@@ -20,7 +20,7 @@ def ArgParse():
     parser.add_argument('--mode', help="Model's mode be one of: 'cut', 'fastcut'",
                         type=str, default='cut', choices=['cut', 'fastcut'])
     parser.add_argument('--gan_mode', help='The type of GAN objective.',
-                        type=str, default='lsgan', choices=['lsgan', 'nonsaturating'])
+                        type=str, default='lsgan', choices=['lsgan', 'nonsaturating', 'hindge'])
     parser.add_argument(
         '--epochs', help='Number of training epochs', type=int, default=400)
     parser.add_argument(
@@ -63,6 +63,7 @@ def ArgParse():
     parser.add_argument('--steps_per_epoch', type=int, default=None)
     parser.add_argument('--n_workers', type=int, default=24)
     parser.add_argument('--src_data_augmentation', action='store_true')
+    parser.add_argument('--use_diffaugment', action='store_true')
     parser.add_argument('--use_antialias', action='store_true')
     parser.add_argument('--memory_growth', action='store_true')
     parser.add_argument('--ngf', type=int, default=64)
@@ -112,7 +113,9 @@ def main(args):
                     resnet_blocks=4,
                     netF_units=256,
                     netF_num_patches=256,
-                    nce_layers=[0, 2, 4, 6, 8],)
+                    nce_layers=[0, 2, 4, 6, 8],
+                    use_diffaugment=args.use_diffaugment
+                    )
     cut.summary()
     # Define learning rate schedule
     lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(initial_learning_rate=args.lr,
