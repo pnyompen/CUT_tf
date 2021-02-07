@@ -176,7 +176,7 @@ class CUT_model(Model):
                  diff_augment_policy='color,translation,cutout',
                  **kwargs):
         assert cut_mode in ['cut', 'fastcut']
-        assert gan_mode in ['lsgan', 'nonsaturating', 'hindge']
+        assert gan_mode in ['lsgan', 'nonsaturating', 'hinge']
         assert norm_layer in [None, 'batch', 'instance']
         assert netF_units > 0
         assert netF_num_patches > 0

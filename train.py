@@ -20,7 +20,7 @@ def ArgParse():
     parser.add_argument('--mode', help="Model's mode be one of: 'cut', 'fastcut'",
                         type=str, default='cut', choices=['cut', 'fastcut'])
     parser.add_argument('--gan_mode', help='The type of GAN objective.',
-                        type=str, default='lsgan', choices=['lsgan', 'nonsaturating', 'hindge'])
+                        type=str, default='lsgan', choices=['lsgan', 'nonsaturating', 'hinge'])
     parser.add_argument(
         '--epochs', help='Number of training epochs', type=int, default=400)
     parser.add_argument(
@@ -114,7 +114,8 @@ def main(args):
                     netF_units=256,
                     netF_num_patches=256,
                     nce_layers=[0, 2, 4, 6, 8],
-                    use_diffaugment=args.use_diffaugment
+                    use_diffaugment=args.use_diffaugment,
+                    gan_mode=args.gan_mode
                     )
     cut.summary()
     # Define learning rate schedule

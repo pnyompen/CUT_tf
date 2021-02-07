@@ -11,37 +11,49 @@ class GANLoss:
         self.gan_mode = gan_mode
         if gan_mode == 'lsgan':
             self.loss = tf.keras.losses.MeanSquaredError()
-        elif gan_mode in ['wgangp', 'nonsaturating']:
+        elif gan_mode in ['wgangp', 'nonsaturating', 'hinge']:
             self.loss = None
         else:
             raise NotImplementedError(f'gan mode {gan_mode} not implemented.')
 
-    def __call__(self, prediction, target_is_real):
+    def __call__(self, prediction, target_is_real, for_discriminator=True):
 
         if self.gan_mode == 'lsgan':
-            if target_is_real:
-                loss = self.loss(tf.ones_like(prediction), prediction)
+            if for_discriminator:
+                if target_is_real:
+                    loss = self.loss(tf.ones_like(prediction), prediction)
+                else:
+                    loss = self.loss(tf.zeros_like(prediction), prediction)
             else:
-                loss = self.loss(tf.zeros_like(prediction), prediction)
+                loss = self.loss(tf.ones_like(prediction), prediction)
 
         elif self.gan_mode == 'nonsaturating':
-            if target_is_real:
+            if for_discriminator:
+                if target_is_real:
+                    loss = tf.reduce_mean(tf.math.softplus(-prediction))
+                else:
+                    loss = tf.reduce_mean(tf.math.softplus(prediction))
+            else:
                 loss = tf.reduce_mean(tf.math.softplus(-prediction))
-            else:
-                loss = tf.reduce_mean(tf.math.softplus(prediction))
-                
         elif self.gan_mode == 'wgangp':
-            if target_is_real:
+            if for_discriminator:
+                if target_is_real:
+                    loss = tf.reduce_mean(-prediction)
+                else:
+                    loss = tf.reduce_mean(prediction)
+            else:
                 loss = tf.reduce_mean(-prediction)
-            else:
-                loss = tf.reduce_mean(prediction)
         elif self.gan_mode == 'hinge':
-            if target_is_real:
-                minval = tf.min(input - 1, tf.zeros_like(input))
-                loss = -tf.reduce_mean(minval)
+            if for_discriminator:
+                if target_is_real:
+                    minval = tf.math.minimum(prediction - 1, tf.zeros_like(prediction))
+                    loss = -tf.reduce_mean(minval)
+                else:
+                    minval = tf.math.minimum(-prediction - 1, tf.zeros_like(prediction))
+                    loss = -tf.reduce_mean(minval)
             else:
-                minval = tf.min(-input - 1, tf.zeros_like(input))
-                loss = -tf.reduce_mean(minval)
+                assert target_is_real, "The generator's hinge loss must be aiming for real"
+                loss = -tf.reduce_mean(prediction)
         return loss
 
 
