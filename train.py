@@ -8,6 +8,7 @@ import datetime
 import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
+from adabelief_tf import AdaBeliefOptimizer
 
 from modules.cut_model import CUT_model
 from utils import create_dir, load_image
@@ -68,6 +69,8 @@ def ArgParse():
     parser.add_argument('--memory_growth', action='store_true')
     parser.add_argument('--ngf', type=int, default=64)
     parser.add_argument('--ndf', type=int, default=64)
+    parser.add_argument('--optimizer', type=str,
+                        default='adam', help='(adam|adaBelief)')
 
     args = parser.parse_args()
 
@@ -123,12 +126,26 @@ def main(args):
                                                                  decay_steps=args.lr_decay_step,
                                                                  decay_rate=args.lr_decay_rate,
                                                                  staircase=True)
-
+    if args.optimizer == 'adam':
+        G_optimizer = tf.keras.optimizers.Adam(
+            learning_rate=lr_schedule, beta_1=args.beta_1, beta_2=args.beta_2)
+        F_optimizer = tf.keras.optimizers.Adam(
+            learning_rate=lr_schedule, beta_1=args.beta_1, beta_2=args.beta_2)
+        D_optimizer = tf.keras.optimizers.Adam(
+            learning_rate=lr_schedule, beta_1=args.beta_1, beta_2=args.beta_2)
+    elif args.optimizer == 'adaBelief':
+        G_optimizer = AdaBeliefOptimizer(
+            learning_rate=lr_schedule, beta_1=args.beta_1, beta_2=args.beta_2, epsilon=1e-12, rectify=False)
+        F_optimizer = AdaBeliefOptimizer(
+            learning_rate=lr_schedule, beta_1=args.beta_1, beta_2=args.beta_2, epsilon=1e-12, rectify=False)
+        D_optimizer = AdaBeliefOptimizer(
+            learning_rate=lr_schedule, beta_1=args.beta_1, beta_2=args.beta_2, epsilon=1e-12, rectify=False)
+    else:
+        raise Exception('Invalid optimizer')
     # Compile model
-    cut.compile(G_optimizer=tf.keras.optimizers.Adam(learning_rate=lr_schedule, beta_1=args.beta_1, beta_2=args.beta_2),
-                F_optimizer=tf.keras.optimizers.Adam(
-                    learning_rate=lr_schedule, beta_1=args.beta_1, beta_2=args.beta_2),
-                D_optimizer=tf.keras.optimizers.Adam(learning_rate=lr_schedule, beta_1=args.beta_1, beta_2=args.beta_2),)
+    cut.compile(G_optimizer=G_optimizer,
+                F_optimizer=F_optimizer,
+                D_optimizer=D_optimizer,)
 
     # Restored from previous checkpoints, or initialize checkpoints from scratch
     if args.ckpt is not None:

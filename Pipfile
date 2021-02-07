@@ -7,6 +7,7 @@ name = "pypi"
 matplotlib = "*"
 tensorflow = "*"
 easydict = "*"
+adabelief-tf = "*"
 
 [dev-packages]
 flake8 = "*"

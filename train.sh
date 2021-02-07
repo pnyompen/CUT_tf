@@ -8,4 +8,5 @@ python train.py --mode cut                                    \
                 --gan_mode "hinge" \
                 --use_diffaugment \
                 --load_size 256 --crop_size 256 \
-                --preprocess scale_shortside_and_crop
+                --preprocess scale_shortside_and_crop \
+                --optimizer adaBelief
