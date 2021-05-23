@@ -4,8 +4,8 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-matplotlib = "*"
 tensorflow = "*"
+matplotlib = "*"
 easydict = "*"
 adabelief-tf = "*"
 
@@ -19,25 +19,25 @@ python_version = "3.8"
 [scripts]
 build_waterpaint = '''
     python scripts/save_model.py
-    --out_path='/Volumes/T5/Workspace/neural_camera/assets/waterpaint2.tflite'
-    --ckpt ckpts/waterpaint
+    --out_path='/Volumes/T5/Workspace/neural_camera/neural_camera/assets/waterpaint2.tflite'
+    --ckpt ckpts/waterpaint__512
 '''
 build_flower = '''
     python scripts/save_model.py
-    --out_path='/Volumes/T5/Workspace/neural_camera/assets/flower.tflite'
+    --out_path='/Volumes/T5/Workspace/neural_camera/neural_camera/assets/flower.tflite'
     --ckpt ckpts/flower
 '''
 build_xray = '''
     python scripts/save_model.py
-    --out_path='/Volumes/T5/Workspace/neural_camera/assets/xray.tflite'
+    --out_path='/Volumes/T5/Workspace/neural_camera/neural_camera/assets/xray.tflite'
     --ckpt ckpts/xray
 '''
 build_test = '''
     python scripts/save_model.py
-    --out_path='/Volumes/T5/Workspace/neural_camera/assets/test.tflite'
+    --out_path='/Volumes/T5/Workspace/neural_camera/neural_camera/assets/test.tflite'
 '''
 build_custom = '''
     python scripts/save_model.py
-    --out_path='/Volumes/T5/Workspace/neural_camera/assets/waterpaint7.tflite'
+    --out_path='/Volumes/T5/Workspace/neural_camera/neural_camera/assets/waterpaint7.tflite'
     --ckpt ckpts/waterpaint7
 '''

@@ -32,7 +32,7 @@ def ArgParse():
     parser.add_argument('--tmp_dir', help='Outputs folder',
                         type=str, default='./output')
     parser.add_argument('--out_path', help='Outputs folder',
-                        type=str, default='/Volumes/T5/Workspace/flutter_tflite/example/assets/cut.tflite')
+                        type=str, default='/Volumes/T5/Workspace/neural_camera/neural_camera/assets/test.tflite')
     # Misc
     parser.add_argument(
         '--ckpt', help='Resume training from checkpoint', type=str)
@@ -51,9 +51,10 @@ def main(args):
                     cut_mode=args.mode, impl=args.impl,
                     norm_layer='instance', ngf=16, ndf=32,
                     resnet_blocks=4,
+                    downsample_blocks=3,
                     netF_units=256,
                     netF_num_patches=256,
-                    nce_layers=[0, 2, 4, 6, 8])
+                    nce_layers=[0, 3, 4, 5, 6, 7])
     cut.summary()
     # Restored from previous checkpoints, or initialize checkpoints from scratch
     if args.ckpt:
@@ -72,7 +73,7 @@ def main(args):
     out_path = Path(args.out_path)
 
     test_img_path = 'test/test.jpg'
-    img = Image.open(test_img_path).resize((256, 256))
+    img = Image.open(test_img_path).resize(source_shape[:2])
     img = (np.array(img) / 127.5) - 1.0
 
     # add N dim
@@ -83,20 +84,21 @@ def main(args):
     im = Image.fromarray(synthesized)
     im.save(tmp_dir / 'temp.png')
 
-
     # モデルを保存
     export_dir = str(tmp_dir / 'tmp_model')
     tf.saved_model.save(model, export_dir)
 
     # モデルを変換
-    converter = tf.lite.TFLiteConverter.from_saved_model(export_dir)
+    converter = tf.lite.TFLiteConverter.from_saved_model(
+        export_dir,
+    )
 
     # quantize
     # converter.optimizations = [tf.lite.Optimize.DEFAULT]
     converter.target_spec.supported_ops = [
         tf.lite.OpsSet.TFLITE_BUILTINS, tf.lite.OpsSet.SELECT_TF_OPS]
-    # converter.target_spec.supported_types = [tf.float16]
-    # converter.optimizations = [tf.lite.Optimize.OPTIMIZE_FOR_SIZE]
+    converter.target_spec.supported_types = [tf.float16]
+    converter.optimizations = [tf.lite.Optimize.OPTIMIZE_FOR_SIZE]
     tflite_model = converter.convert()
 
     with open(out_path, 'wb') as f:

@@ -10,6 +10,7 @@ import tensorflow as tf
 
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Dense, Lambda
+from tensorflow.python.util.tf_export import get_v2_names
 from modules.layers import (
     ConvBlock, AntialiasSampling, ResBlock,
     Padding2D, InvertedResBlock, ConvDepthwiseBlock,
@@ -19,7 +20,7 @@ from modules.losses import GANLoss, PatchNCELoss
 from modules.diffaugment import DiffAugment, get_params
 
 
-def Generator(input_shape, output_shape, norm_layer, resnet_blocks, impl, ngf=64):
+def Generator(input_shape, output_shape, norm_layer, resnet_blocks: int, downsample_blocks: int, impl, ngf=64, max_kernel_size=256):
     """ Create a Resnet-based generator.
     Adapt from Justin Johnson's neural style transfer project(https://github.com/jcjohnson/fast-neural-style).
     For BatchNorm, we use learnable affine parameters and track running statistics (mean/stddev).
@@ -28,22 +29,25 @@ def Generator(input_shape, output_shape, norm_layer, resnet_blocks, impl, ngf=64
     # use_bias = (norm_layer == 'instance')
     use_bias = False
 
+    def get_n_filter(i: int) -> int:
+        size = ngf*2**i
+        return max_kernel_size if size > max_kernel_size else size
+
     inputs = Input(shape=input_shape)
     x = Padding2D(3, pad_type='reflect')(inputs)
-    x = ConvDepthwiseBlock(ngf, 7, padding='valid', use_bias=use_bias,
+    x = ConvDepthwiseBlock(get_n_filter(0), 7, padding='valid', use_bias=use_bias,
                            norm_layer=norm_layer, activation='relu')(x)
-    x = ConvDepthwiseBlock(ngf*2, 3, (2, 2), padding='same', use_bias=use_bias,
-                           norm_layer=norm_layer, activation='relu')(x)
-    x = ConvDepthwiseBlock(ngf*4, 3, (2, 2), padding='same', use_bias=use_bias,
-                           norm_layer=norm_layer, activation='relu')(x)
+    for i in range(1, downsample_blocks + 1):
+        x = ConvDepthwiseBlock(get_n_filter(i), 3, (2, 2), padding='same', use_bias=use_bias,
+                               norm_layer=norm_layer, activation='relu')(x)
 
     for _ in range(resnet_blocks):
-        x = InvertedResBlock(ngf*4, 3, use_bias, norm_layer)(x)
+        x = InvertedResBlock(get_n_filter(downsample_blocks),
+                             3, use_bias, norm_layer)(x)
 
-    x = ConvTransposeBlock(ngf*2, 3, (2, 2), padding='same', use_bias=use_bias,
-                           norm_layer=norm_layer, activation='relu')(x)
-    x = ConvTransposeBlock(ngf, 3, (2, 2), padding='same', use_bias=use_bias,
-                           norm_layer=norm_layer, activation='relu')(x)
+    for i in range(downsample_blocks, 0, -1):
+        x = ConvTransposeBlock(get_n_filter(i), 3, (2, 2), padding='same', use_bias=use_bias,
+                               norm_layer=norm_layer, activation='relu')(x)
     x = Padding2D(3, pad_type='reflect')(x)
     outputs = ConvBlock(output_shape[-1], 7,
                         padding='valid', activation='tanh')(x)
@@ -92,6 +96,8 @@ def Discriminator(input_shape, norm_layer, use_antialias, impl, ndf=64):
 def Encoder(generator, nce_layers):
     """ Create an Encoder that shares weights with the generator.
     """
+    print(generator.layers)
+    print(nce_layers)
     assert max(nce_layers) <= len(generator.layers) and min(nce_layers) >= 0
 
     outputs = [generator.get_layer(index=idx).output for idx in nce_layers]
@@ -165,6 +171,7 @@ class CUT_model(Model):
                  use_antialias=True,
                  norm_layer='instance',
                  resnet_blocks=5,
+                 downsample_blocks=3,
                  netF_units=256,
                  netF_num_patches=256,
                  nce_temp=0.07,
@@ -187,7 +194,7 @@ class CUT_model(Model):
         self.nce_temp = nce_temp
         self.nce_layers = nce_layers
         self.netG = Generator(source_shape, target_shape,
-                              norm_layer, resnet_blocks, impl, ngf)
+                              norm_layer, resnet_blocks, downsample_blocks, impl, ngf)
         self.netD = Discriminator(
             target_shape, norm_layer, use_antialias, impl, ndf)
         self.netE = Encoder(self.netG, self.nce_layers)
