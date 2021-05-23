@@ -178,7 +178,9 @@ def main(args):
             epochs=args.epochs,
             initial_epoch=initial_epoch,
             callbacks=[plotter_callback,
-                       checkpoint_callback, tensorboard_callback],
+                       checkpoint_callback,
+                    #    tensorboard_callback
+                       ],
             workers=args.n_workers,
             steps_per_epoch=args.steps_per_epoch,
             verbose=1)
