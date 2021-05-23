@@ -96,8 +96,6 @@ def Discriminator(input_shape, norm_layer, use_antialias, impl, ndf=64):
 def Encoder(generator, nce_layers):
     """ Create an Encoder that shares weights with the generator.
     """
-    print(generator.layers)
-    print(nce_layers)
     assert max(nce_layers) <= len(generator.layers) and min(nce_layers) >= 0
 
     outputs = [generator.get_layer(index=idx).output for idx in nce_layers]

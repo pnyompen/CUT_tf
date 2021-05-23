@@ -193,7 +193,7 @@ def create_dataset(args):
     train_src_dataset = (
         train_src_dataset.map(lambda x: load_image(x, crop_size=args.crop_size, load_size=args.load_size,
                                                    preprocess=args.preprocess, src_data_augmentation=args.src_data_augmentation), num_parallel_calls=tf.data.experimental.AUTOTUNE)
-        .batch(args.batch_size, drop_remainder=True)
+        .batch(args.batch_size, drop_remainder=True).repeat()
         .prefetch(tf.data.experimental.AUTOTUNE)
     )
 
@@ -205,7 +205,7 @@ def create_dataset(args):
     train_tar_dataset = (
         train_tar_dataset.map(lambda x: load_image(x, crop_size=args.crop_size, load_size=args.load_size,
                                                    preprocess=args.preprocess), num_parallel_calls=tf.data.experimental.AUTOTUNE)
-        .batch(args.batch_size, drop_remainder=True)
+        .batch(args.batch_size, drop_remainder=True).repeat()
         .prefetch(tf.data.experimental.AUTOTUNE)
     )
 
@@ -217,7 +217,7 @@ def create_dataset(args):
     test_src_dataset = (
         test_src_dataset.map(lambda x: load_image(x, crop_size=args.crop_size, load_size=args.load_size,
                                                   preprocess=args.preprocess, src_data_augmentation=args.src_data_augmentation), num_parallel_calls=tf.data.experimental.AUTOTUNE)
-        .batch(args.batch_size, drop_remainder=True)
+        .batch(args.batch_size, drop_remainder=True).repeat()
         .prefetch(tf.data.experimental.AUTOTUNE)
     )
 
@@ -228,7 +228,7 @@ def create_dataset(args):
     test_tar_dataset = (
         test_tar_dataset.map(lambda x: load_image(x, crop_size=args.crop_size, load_size=args.load_size,
                                                   preprocess=args.preprocess), num_parallel_calls=tf.data.experimental.AUTOTUNE)
-        .batch(args.batch_size, drop_remainder=True)
+        .batch(args.batch_size, drop_remainder=True).repeat()
         .prefetch(tf.data.experimental.AUTOTUNE)
     )
 
