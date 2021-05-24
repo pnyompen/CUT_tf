@@ -36,7 +36,7 @@ def ArgParse():
                         help='lr_decay_rate', type=float, default=0.9)
     parser.add_argument('--lr_decay_step',
                         help='lr_decay_step', type=int, default=100000)
-    parser.add_argument('--vgg_lambda', type=int, default=10,
+    parser.add_argument('--vgg_lambda', type=float, default=0.01,
                         help='Weight about perceptual loss')
     # Define data
     parser.add_argument('--out_dir', help='Outputs folder',
