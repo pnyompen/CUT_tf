@@ -49,12 +49,12 @@ def main(args):
     # Create model
     cut = CUT_model(source_shape, target_shape,
                     cut_mode=args.mode, impl=args.impl,
-                    norm_layer='instance', ngf=16, ndf=32,
-                    resnet_blocks=4,
+                    norm_layer='instance', ngf=16, ndf=16,
+                    resnet_blocks=3,
                     downsample_blocks=2,
                     netF_units=256,
                     netF_num_patches=256,
-                    nce_layers=[0, 3, 4, 5, 6, 7])
+                    nce_layers=[0, 3, 4, 5, 6])
     cut.summary()
     # Restored from previous checkpoints, or initialize checkpoints from scratch
     if args.ckpt:
@@ -73,7 +73,7 @@ def main(args):
     out_path = Path(args.out_path)
 
     test_img_path = 'test/test.jpg'
-    img = Image.open(test_img_path).resize(source_shape[:2])
+    img = Image.open(test_img_path).resize(source_shape[:2][::-1])
     img = (np.array(img) / 127.5) - 1.0
 
     # add N dim
@@ -102,8 +102,8 @@ def main(args):
     # converter.optimizations = [tf.lite.Optimize.DEFAULT]
     converter.target_spec.supported_ops = [
         tf.lite.OpsSet.TFLITE_BUILTINS, tf.lite.OpsSet.SELECT_TF_OPS]
-    # converter.target_spec.supported_types = [tf.float16]
-    # converter.optimizations = [tf.lite.Optimize.OPTIMIZE_FOR_SIZE]
+    converter.target_spec.supported_types = [tf.float16]
+    converter.optimizations = [tf.lite.Optimize.OPTIMIZE_FOR_SIZE]
     tflite_model = converter.convert()
 
     with open(out_path, 'wb') as f:
