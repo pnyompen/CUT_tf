@@ -44,7 +44,7 @@ def ArgParse():
 
 
 def main(args):
-    source_shape = target_shape = [256, 256, 3]
+    source_shape = target_shape = [384, 216, 3]
 
     # Create model
     cut = CUT_model(source_shape, target_shape,
