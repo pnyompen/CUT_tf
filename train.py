@@ -36,6 +36,8 @@ def ArgParse():
                         help='lr_decay_rate', type=float, default=0.9)
     parser.add_argument('--lr_decay_step',
                         help='lr_decay_step', type=int, default=100000)
+    parser.add_argument('--vgg_lambda', type=int, default=10,
+                        help='Weight about perceptual loss')
     # Define data
     parser.add_argument('--out_dir', help='Outputs folder',
                         type=str, default='./output')
@@ -119,7 +121,8 @@ def main(args):
                     netF_num_patches=256,
                     nce_layers=[0, 3, 4, 5, 6],
                     use_diffaugment=args.use_diffaugment,
-                    gan_mode=args.gan_mode
+                    gan_mode=args.gan_mode,
+                    vgg_lambda=args.vgg_lambda
                     )
     cut.summary()
     # Define learning rate schedule
