@@ -50,6 +50,7 @@ def main(args):
     cut = CUT_model(source_shape, target_shape,
                     cut_mode=args.mode, impl=args.impl,
                     norm_layer='instance', ngf=16, ndf=16,
+                    use_antialias=True,
                     resnet_blocks=3,
                     downsample_blocks=2,
                     netF_units=256,

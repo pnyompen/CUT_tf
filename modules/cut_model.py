@@ -21,7 +21,7 @@ from modules.diffaugment import DiffAugment, get_params
 from modules.vgg19_keras import VGGLoss
 
 
-def Generator(input_shape, output_shape, norm_layer, resnet_blocks: int, downsample_blocks: int, impl, ngf=64, max_kernel_size=256):
+def Generator(input_shape, output_shape, norm_layer, use_antialias: bool, resnet_blocks: int, downsample_blocks: int, impl, ngf=64, max_kernel_size=256):
     """ Create a Resnet-based generator.
     Adapt from Justin Johnson's neural style transfer project(https://github.com/jcjohnson/fast-neural-style).
     For BatchNorm, we use learnable affine parameters and track running statistics (mean/stddev).
@@ -47,13 +47,15 @@ def Generator(input_shape, output_shape, norm_layer, resnet_blocks: int, downsam
                              3, use_bias, norm_layer)(x)
 
     for i in range(downsample_blocks, 0, -1):
-        x = ConvTransposeBlock(get_n_filter(i), 3, (2, 2), padding='same', use_bias=use_bias,
-                               norm_layer=norm_layer, activation='relu')(x)
-        # x = tf.keras.layers.UpSampling2D(
-        #     size=(2, 2), interpolation='bilinear'
-        # )(x)
-        # x = ConvDepthwiseBlock(get_n_filter(i), 3, (1, 1), padding='same', use_bias=use_bias,
-        #                        norm_layer=norm_layer, activation='relu')(x)
+        if use_antialias:
+            x = tf.keras.layers.UpSampling2D(
+                size=(2, 2), interpolation='bilinear'
+            )(x)
+            x = ConvBlock(get_n_filter(i), 3, (1, 1), padding='same', use_bias=use_bias,
+                                   norm_layer=norm_layer, activation='relu')(x)
+        else:
+            x = ConvTransposeBlock(get_n_filter(i), 3, (2, 2), padding='same', use_bias=use_bias,
+                                   norm_layer=norm_layer, activation='relu')(x)
     x = Padding2D(3, pad_type='reflect')(x)
     outputs = ConvBlock(output_shape[-1], 7,
                         padding='valid', activation='tanh')(x)
@@ -199,7 +201,7 @@ class CUT_model(Model):
         self.nce_temp = nce_temp
         self.nce_layers = nce_layers
         self.netG = Generator(source_shape, target_shape,
-                              norm_layer, resnet_blocks, downsample_blocks, impl, ngf)
+                              norm_layer, use_antialias, resnet_blocks, downsample_blocks, impl, ngf)
         self.netD = Discriminator(
             target_shape, norm_layer, use_antialias, impl, ndf)
         self.netE = Encoder(self.netG, self.nce_layers)
