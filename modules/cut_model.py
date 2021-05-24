@@ -47,15 +47,15 @@ def Generator(input_shape, output_shape, norm_layer, resnet_blocks: int, downsam
                              3, use_bias, norm_layer)(x)
 
     for i in range(downsample_blocks, 0, -1):
-        # x = ConvTransposeBlock(get_n_filter(i), 3, (2, 2), padding='same', use_bias=use_bias,
-        #                        norm_layer=norm_layer, activation='relu')(x)
-        x = tf.keras.layers.UpSampling2D(
-            size=(2, 2), interpolation='bilinear'
-        )(x)
-        x = ConvDepthwiseBlock(get_n_filter(i), 3, (1, 1), padding='same', use_bias=use_bias,
+        x = ConvTransposeBlock(get_n_filter(i), 3, (2, 2), padding='same', use_bias=use_bias,
                                norm_layer=norm_layer, activation='relu')(x)
+        # x = tf.keras.layers.UpSampling2D(
+        #     size=(2, 2), interpolation='bilinear'
+        # )(x)
+        # x = ConvDepthwiseBlock(get_n_filter(i), 3, (1, 1), padding='same', use_bias=use_bias,
+        #                        norm_layer=norm_layer, activation='relu')(x)
     x = Padding2D(3, pad_type='reflect')(x)
-    outputs = ConvDepthwiseBlock(output_shape[-1], 7,
+    outputs = ConvBlock(output_shape[-1], 7,
                         padding='valid', activation='tanh')(x)
 
     return Model(inputs=inputs, outputs=outputs, name='generator')
