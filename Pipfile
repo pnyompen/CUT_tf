@@ -8,6 +8,7 @@ tensorflow = "*"
 matplotlib = "*"
 easydict = "*"
 adabelief-tf = "*"
+keras = "*"
 
 [dev-packages]
 flake8 = "*"

@@ -18,6 +18,7 @@ from modules.layers import (
 )
 from modules.losses import GANLoss, PatchNCELoss
 from modules.diffaugment import DiffAugment, get_params
+from modules.vgg19_keras import VGGLoss
 
 
 def Generator(input_shape, output_shape, norm_layer, resnet_blocks: int, downsample_blocks: int, impl, ngf=64, max_kernel_size=256):
@@ -179,6 +180,7 @@ class CUT_model(Model):
                  ndf=64,
                  use_diffaugment=False,
                  diff_augment_policy='color,translation,cutout',
+                 vgg_lambda=10,
                  **kwargs):
         assert cut_mode in ['cut', 'fastcut']
         assert gan_mode in ['lsgan', 'nonsaturating', 'hinge']
@@ -197,6 +199,7 @@ class CUT_model(Model):
             target_shape, norm_layer, use_antialias, impl, ndf)
         self.netE = Encoder(self.netG, self.nce_layers)
         self.netF = PatchSampleMLP(netF_units, netF_num_patches)
+        self.vgg_lambda = vgg_lambda
 
         if cut_mode == 'cut':
             self.nce_lambda = 1.0
@@ -219,6 +222,7 @@ class CUT_model(Model):
         self.D_optimizer = D_optimizer
         self.gan_loss_func = GANLoss(self.gan_mode)
         self.nce_loss_func = PatchNCELoss(self.nce_temp, self.nce_lambda)
+        self.vgg_loss_func = VGGLoss()
 
     @tf.function
     def train_step(self, batch_data):
@@ -238,6 +242,11 @@ class CUT_model(Model):
                 NCE_B_loss = self.nce_loss_func(
                     real_B, idt_B, self.netE, self.netF)
                 NCE_loss = (NCE_loss + NCE_B_loss) * 0.5
+
+            if self.vgg_lambda > 0:
+                VGG_loss = self.vgg_lambda * self.vgg_loss_func(real_B, idt_B)
+            else:
+                VGG_loss = 0
 
             if self.use_diffaugment:
                 params = get_params(
@@ -259,7 +268,7 @@ class CUT_model(Model):
             """Calculate GAN loss and NCE loss for the generator"""
             G_loss = tf.reduce_mean(self.gan_loss_func(fake_score, True))
 
-            G_loss += NCE_loss
+            G_loss += NCE_loss + VGG_loss
 
         D_loss_grads = tape.gradient(D_loss, self.netD.trainable_variables)
         self.D_optimizer.apply_gradients(
