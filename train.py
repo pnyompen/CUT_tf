@@ -61,7 +61,7 @@ def ArgParse():
     # Dataset
     parser.add_argument('--preprocess', type=str, default='none',
                         choices=['none', 'crop', 'scale_shortside_and_crop'])
-    parser.add_argument('--crop_size', type=str, default="216,384")
+    parser.add_argument('--crop_size', type=str, default="384,216")
     parser.add_argument('--load_size', type=int, default=384)
     parser.add_argument('--steps_per_epoch', type=int, default=None)
     parser.add_argument('--n_workers', type=int, default=24)
