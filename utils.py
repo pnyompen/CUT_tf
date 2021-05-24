@@ -29,7 +29,7 @@ def load_image(image_file, crop_size, load_size, preprocess='none', data_augment
     if 'scale_shortside' in preprocess:
         image = resize_image_keep_aspect(image, load_size)
     if 'crop' in preprocess:
-        image = tf.image.random_crop(image, (crop_size, crop_size, 3))
+        image = tf.image.random_crop(image, (*crop_size, 3))
     if data_augmentation:
         image = tf.image.random_flip_left_right(image)
     if tf.shape(image)[-1] == 1:
@@ -46,8 +46,10 @@ def resize_image_keep_aspect(image, lo_dim):
     # Take the greater value, and use it for the ratio
     min_ = tf.minimum(initial_width, initial_height)
     ratio = min_ / tf.constant(lo_dim, dtype=tf.float32)
-
-    new_width = tf.cast(initial_width / ratio, tf.int32)
-    new_height = tf.cast(initial_height / ratio, tf.int32)
+    new_width = new_height = lo_dim
+    if initial_width > initial_height:
+        new_width = tf.cast(initial_width / ratio, tf.int32)
+    else:
+        new_height = tf.cast(initial_height / ratio, tf.int32)
 
     return tf.image.resize(image, [new_width, new_height])

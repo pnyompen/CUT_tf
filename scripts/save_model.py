@@ -51,7 +51,7 @@ def main(args):
                     cut_mode=args.mode, impl=args.impl,
                     norm_layer='instance', ngf=16, ndf=32,
                     resnet_blocks=4,
-                    downsample_blocks=3,
+                    downsample_blocks=2,
                     netF_units=256,
                     netF_num_patches=256,
                     nce_layers=[0, 3, 4, 5, 6, 7])
@@ -89,16 +89,21 @@ def main(args):
     tf.saved_model.save(model, export_dir)
 
     # モデルを変換
-    converter = tf.lite.TFLiteConverter.from_saved_model(
-        export_dir,
-    )
+    # converter = tf.lite.TFLiteConverter.from_saved_model(
+    #     export_dir,
+    # )
+    model = tf.saved_model.load(export_dir)
+    concrete_func = model.signatures[
+        tf.saved_model.DEFAULT_SERVING_SIGNATURE_DEF_KEY]
+    concrete_func.inputs[0].set_shape([1, *source_shape])
+    converter = tf.lite.TFLiteConverter.from_concrete_functions([concrete_func])
 
     # quantize
     # converter.optimizations = [tf.lite.Optimize.DEFAULT]
     converter.target_spec.supported_ops = [
         tf.lite.OpsSet.TFLITE_BUILTINS, tf.lite.OpsSet.SELECT_TF_OPS]
-    converter.target_spec.supported_types = [tf.float16]
-    converter.optimizations = [tf.lite.Optimize.OPTIMIZE_FOR_SIZE]
+    # converter.target_spec.supported_types = [tf.float16]
+    # converter.optimizations = [tf.lite.Optimize.OPTIMIZE_FOR_SIZE]
     tflite_model = converter.convert()
 
     with open(out_path, 'wb') as f:

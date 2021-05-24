@@ -17,6 +17,20 @@ autopep8 = "*"
 python_version = "3.8"
 
 [scripts]
+train = '''
+    python train.py
+        --save_n_epoch 1
+        --steps_per_epoch 1
+        --train_src_dir "datasets/test/trainA"
+        --train_tar_dir "datasets/test/trainB"
+        --test_src_dir "datasets/test/trainA"  
+        --test_tar_dir "datasets/test/trainB"  
+        --out_dir "ckpts/test"
+        --load_size 384 --crop_size "216,384"
+        --preprocess "scale_shortside_and_crop"
+        --src_data_augmentation
+        --ngf 16 --ndf 32 --use_antialias
+'''
 build_waterpaint = '''
     python scripts/save_model.py
     --out_path='/Volumes/T5/Workspace/neural_camera/neural_camera/assets/waterpaint2.tflite'
@@ -31,6 +45,11 @@ build_xray = '''
     python scripts/save_model.py
     --out_path='/Volumes/T5/Workspace/neural_camera/neural_camera/assets/xray.tflite'
     --ckpt ckpts/xray
+'''
+build_face = '''
+    python scripts/save_model.py
+    --out_path='/Volumes/T5/Workspace/neural_camera/neural_camera/assets/face.tflite'
+    --ckpt ckpts/face
 '''
 build_test = '''
     python scripts/save_model.py
