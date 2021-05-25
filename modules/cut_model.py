@@ -46,7 +46,7 @@ def Generator(input_shape, output_shape, norm_layer, use_antialias: bool, resnet
         x = InvertedResBlock(get_n_filter(downsample_blocks),
                              3, use_bias, norm_layer)(x)
 
-    for i in range(downsample_blocks, 0, -1):
+    for i in range(downsample_blocks-1, -1, -1):
         if use_antialias:
             x = tf.keras.layers.UpSampling2D(
                 size=(2, 2), interpolation='bilinear'

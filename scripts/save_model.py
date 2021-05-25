@@ -45,11 +45,12 @@ def ArgParse():
 
 def main(args):
     source_shape = target_shape = [384, 216, 3]
+    # source_shape = target_shape = [336, 192, 3]
 
     # Create model
     cut = CUT_model(source_shape, target_shape,
                     cut_mode=args.mode, impl=args.impl,
-                    norm_layer='instance', ngf=16, ndf=16,
+                    norm_layer='instance', ngf=16, ndf=32,
                     use_antialias=True,
                     resnet_blocks=3,
                     downsample_blocks=2,
