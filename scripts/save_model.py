@@ -52,7 +52,7 @@ def main(args):
                     cut_mode=args.mode, impl=args.impl,
                     norm_layer='instance', ngf=16, ndf=32,
                     use_antialias=True,
-                    resnet_blocks=3,
+                    resnet_blocks=4,
                     downsample_blocks=2,
                     netF_units=256,
                     netF_num_patches=256,

@@ -115,7 +115,7 @@ def main(args):
     cut = CUT_model(source_shape, target_shape,
                     cut_mode=args.mode, impl=args.impl, norm_layer='instance',
                     use_antialias=args.use_antialias, ndf=args.ndf, ngf=args.ngf,
-                    resnet_blocks=3,
+                    resnet_blocks=4,
                     downsample_blocks=2,
                     netF_units=256,
                     netF_num_patches=256,
