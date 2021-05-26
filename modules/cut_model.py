@@ -18,7 +18,7 @@ from modules.layers import (
 )
 from modules.losses import GANLoss, PatchNCELoss
 from modules.diffaugment import DiffAugment, get_params
-from modules.vgg19_keras import VGGLoss
+# from modules.vgg19_keras import VGGLoss
 
 
 def Generator(input_shape, output_shape, norm_layer, use_antialias: bool, resnet_blocks: int, downsample_blocks: int, impl, ngf=64, max_kernel_size=256):
@@ -229,7 +229,8 @@ class CUT_model(Model):
         self.D_optimizer = D_optimizer
         self.gan_loss_func = GANLoss(self.gan_mode)
         self.nce_loss_func = PatchNCELoss(self.nce_temp, self.nce_lambda)
-        self.vgg_loss_func = VGGLoss()
+        if self.vgg_lambda > 0:
+            self.vgg_loss_func = VGGLoss()
 
     @tf.function
     def train_step(self, batch_data):
