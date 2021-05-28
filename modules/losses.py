@@ -19,30 +19,22 @@ class GANLoss:
     def __call__(self, prediction, target_is_real, for_discriminator=True):
 
         if self.gan_mode == 'lsgan':
-            if for_discriminator:
-                if target_is_real:
-                    loss = self.loss(tf.ones_like(prediction), prediction)
-                else:
-                    loss = self.loss(tf.zeros_like(prediction), prediction)
-            else:
+            if target_is_real:
                 loss = self.loss(tf.ones_like(prediction), prediction)
+            else:
+                loss = self.loss(tf.zeros_like(prediction), prediction)
 
         elif self.gan_mode == 'nonsaturating':
-            if for_discriminator:
-                if target_is_real:
-                    loss = tf.reduce_mean(tf.math.softplus(-prediction))
-                else:
-                    loss = tf.reduce_mean(tf.math.softplus(prediction))
-            else:
+            if target_is_real:
                 loss = tf.reduce_mean(tf.math.softplus(-prediction))
-        elif self.gan_mode == 'wgangp':
-            if for_discriminator:
-                if target_is_real:
-                    loss = tf.reduce_mean(-prediction)
-                else:
-                    loss = tf.reduce_mean(prediction)
             else:
+                loss = tf.reduce_mean(tf.math.softplus(prediction))
+
+        elif self.gan_mode == 'wgangp':
+            if target_is_real:
                 loss = tf.reduce_mean(-prediction)
+            else:
+                loss = tf.reduce_mean(prediction)
         elif self.gan_mode == 'hinge':
             if for_discriminator:
                 if target_is_real:

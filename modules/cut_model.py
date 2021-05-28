@@ -266,15 +266,18 @@ class CUT_model(Model):
 
             """Calculate GAN loss for the discriminator"""
             fake_score = self.netD(fake_B, training=True)
-            D_fake_loss = tf.reduce_mean(self.gan_loss_func(fake_score, False))
+            D_fake_loss = tf.reduce_mean(self.gan_loss_func(
+                fake_score, False, for_discriminator=True))
 
             real_score = self.netD(real_B, training=True)
-            D_real_loss = tf.reduce_mean(self.gan_loss_func(real_score, True))
+            D_real_loss = tf.reduce_mean(self.gan_loss_func(
+                real_score, True, for_discriminator=True))
 
             D_loss = (D_fake_loss + D_real_loss) * 0.5
 
             """Calculate GAN loss and NCE loss for the generator"""
-            G_loss = tf.reduce_mean(self.gan_loss_func(fake_score, True))
+            G_loss = tf.reduce_mean(self.gan_loss_func(
+                fake_score, True, for_discriminator=False))
             G_loss += NCE_loss + VGG_loss
 
         D_loss_grads = tape.gradient(D_loss, self.netD.trainable_variables)
