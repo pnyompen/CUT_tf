@@ -1,5 +1,6 @@
 import os
 import tensorflow as tf
+import random
 
 
 def create_dir(dir):
@@ -26,7 +27,10 @@ def load_image(image_file, crop_size, load_size, preprocess='none', data_augment
         image = tf.image.random_brightness(image, max_delta=0.25)
         image = tf.image.random_contrast(image, lower=0.5, upper=1.5)
     if tar_data_augmentation:
-        image = tf.keras.preprocessing.image.random_rotation(image, 0.2)
+        image = tf.keras.preprocessing.image.random_rotation(
+            image, 25, fill_mode='reflect')
+        zoom_ratio = random.random() * 1 + 0.75 
+        image = tf.keras.preprocessing.image.random_zoom(image, (zoom_ratio, zoom_ratio), fill_mode='reflect')
     image = (tf.cast(image, tf.float32) / 127.5) - 1.0
 
     if 'scale_shortside' in preprocess:
