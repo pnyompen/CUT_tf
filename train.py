@@ -66,6 +66,7 @@ def ArgParse():
     parser.add_argument('--steps_per_epoch', type=int, default=None)
     parser.add_argument('--n_workers', type=int, default=24)
     parser.add_argument('--src_data_augmentation', action='store_true')
+    parser.add_argument('--tar_data_augmentation', action='store_true')
     parser.add_argument('--use_diffaugment', action='store_true')
     parser.add_argument('--use_antialias', action='store_true')
     parser.add_argument('--memory_growth', action='store_true')
@@ -182,7 +183,7 @@ def main(args):
             initial_epoch=initial_epoch,
             callbacks=[plotter_callback,
                        checkpoint_callback,
-                    #    tensorboard_callback
+                       #    tensorboard_callback
                        ],
             workers=args.n_workers,
             steps_per_epoch=args.steps_per_epoch,
@@ -210,7 +211,9 @@ def create_dataset(args):
             args.train_tar_dir+f'/{args.train_tar_pattern}.png'], shuffle=True)
     train_tar_dataset = (
         train_tar_dataset.map(lambda x: load_image(x, crop_size=crop_size, load_size=args.load_size,
-                                                   preprocess=args.preprocess), num_parallel_calls=tf.data.experimental.AUTOTUNE)
+                                                   preprocess=args.preprocess,
+                                                   tar_data_augmentation=args.tar_data_augmentation),
+                              num_parallel_calls=tf.data.experimental.AUTOTUNE)
         .batch(args.batch_size, drop_remainder=True).repeat()
         .prefetch(tf.data.experimental.AUTOTUNE)
     )
@@ -233,7 +236,9 @@ def create_dataset(args):
          args.test_tar_dir+f'/{args.train_tar_pattern}.png'])
     test_tar_dataset = (
         test_tar_dataset.map(lambda x: load_image(x, crop_size=crop_size, load_size=args.load_size,
-                                                  preprocess=args.preprocess), num_parallel_calls=tf.data.experimental.AUTOTUNE)
+                                                  preprocess=args.preprocess,
+                                                  tar_data_augmentation=args.tar_data_augmentation),
+                             num_parallel_calls=tf.data.experimental.AUTOTUNE)
         .batch(args.batch_size, drop_remainder=True).repeat()
         .prefetch(tf.data.experimental.AUTOTUNE)
     )
